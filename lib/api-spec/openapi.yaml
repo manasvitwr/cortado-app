@@ -10,6 +10,14 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard and discovery operations
+  - name: entries
+    description: Saved tutorial entries
+  - name: playlists
+    description: Custom and imported playlists
+  - name: profile
+    description: Profile and learning stats
 paths:
   /healthz:
     get:
@@ -24,7 +32,285 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get the signed-in user's dashboard
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /explore/trending:
+    get:
+      operationId: getTrending
+      tags: [dashboard]
+      summary: Get public tutorial discovery data
+      responses:
+        "200":
+          description: Trending entries and lists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExploreData"
+  /entries:
+    get:
+      operationId: getEntries
+      tags: [entries]
+      summary: List the current user's saved tutorials
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [watchlist, watching, watched]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Saved entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Entry"
+    post:
+      operationId: createEntry
+      tags: [entries]
+      summary: Save a YouTube video and its personal notes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryInput"
+      responses:
+        "201":
+          description: Saved entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        "400":
+          description: Invalid YouTube URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /entries/{entryId}:
+    get:
+      operationId: getEntry
+      tags: [entries]
+      summary: Get one saved tutorial
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+      responses:
+        "200":
+          description: Saved entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        "404":
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateEntry
+      tags: [entries]
+      summary: Update personal notes and status
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryUpdate"
+      responses:
+        "200":
+          description: Updated entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+    delete:
+      operationId: deleteEntry
+      tags: [entries]
+      summary: Remove a saved tutorial
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+      responses:
+        "204":
+          description: Entry deleted
+  /playlists:
+    get:
+      operationId: getPlaylists
+      tags: [playlists]
+      summary: List the user's custom and imported lists
+      responses:
+        "200":
+          description: Playlists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Playlist"
+    post:
+      operationId: createPlaylist
+      tags: [playlists]
+      summary: Create a custom list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaylistInput"
+      responses:
+        "201":
+          description: Created playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+  /playlists/import:
+    post:
+      operationId: importPlaylist
+      tags: [playlists]
+      summary: Save a YouTube playlist and optionally import its first 25 videos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaylistImportInput"
+      responses:
+        "201":
+          description: Imported or saved playlist shell
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+        "400":
+          description: Invalid playlist URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /playlists/{playlistId}:
+    get:
+      operationId: getPlaylist
+      tags: [playlists]
+      summary: Get a playlist and its saved tutorials
+      parameters:
+        - $ref: "#/components/parameters/PlaylistId"
+      responses:
+        "200":
+          description: Playlist detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+    patch:
+      operationId: updatePlaylist
+      tags: [playlists]
+      summary: Update playlist metadata
+      parameters:
+        - $ref: "#/components/parameters/PlaylistId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaylistUpdate"
+      responses:
+        "200":
+          description: Updated playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+    delete:
+      operationId: deletePlaylist
+      tags: [playlists]
+      summary: Delete a playlist
+      parameters:
+        - $ref: "#/components/parameters/PlaylistId"
+      responses:
+        "204":
+          description: Playlist deleted
+  /playlists/{playlistId}/videos:
+    post:
+      operationId: addVideoToPlaylist
+      tags: [playlists]
+      summary: Add a saved tutorial to a playlist
+      parameters:
+        - $ref: "#/components/parameters/PlaylistId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaylistVideoInput"
+      responses:
+        "201":
+          description: Updated playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+  /playlists/{playlistId}/videos/{videoId}:
+    delete:
+      operationId: removeVideoFromPlaylist
+      tags: [playlists]
+      summary: Remove a tutorial from a playlist
+      parameters:
+        - $ref: "#/components/parameters/PlaylistId"
+        - $ref: "#/components/parameters/VideoId"
+      responses:
+        "204":
+          description: Tutorial removed
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get the user's profile and stats
+      responses:
+        "200":
+          description: Profile data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
 components:
+  parameters:
+    EntryId:
+      name: entryId
+      in: path
+      required: true
+      schema:
+        type: string
+    PlaylistId:
+      name: playlistId
+      in: path
+      required: true
+      schema:
+        type: string
+    VideoId:
+      name: videoId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +319,166 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    Video:
+      type: object
+      required: [id, youtubeId, title, thumbnailUrl, channelName, originalUrl]
+      properties:
+        id: { type: string }
+        youtubeId: { type: string }
+        title: { type: string }
+        thumbnailUrl: { type: string }
+        channelName: { type: string }
+        description: { type: ["string", "null"] }
+        duration: { type: ["string", "null"] }
+        originalUrl: { type: string }
+    Entry:
+      type: object
+      required: [id, video, status, visibility, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        video: { $ref: "#/components/schemas/Video" }
+        caption: { type: ["string", "null"] }
+        summary: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        rating: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        status:
+          type: string
+          enum: [watchlist, watching, watched]
+        visibility:
+          type: string
+          enum: [private, public]
+        watchedAt: { type: ["string", "null"], format: date }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    EntryInput:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, minLength: 1 }
+        caption: { type: string }
+        summary: { type: string }
+        notes: { type: string }
+        rating: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        status:
+          type: string
+          enum: [watchlist, watching, watched]
+        visibility:
+          type: string
+          enum: [private, public]
+    EntryUpdate:
+      type: object
+      properties:
+        caption: { type: string }
+        summary: { type: string }
+        notes: { type: string }
+        rating: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        status:
+          type: string
+          enum: [watchlist, watching, watched]
+        visibility:
+          type: string
+          enum: [private, public]
+    Playlist:
+      type: object
+      required: [id, title, visibility, source, videoCount, videos, createdAt]
+      properties:
+        id: { type: string }
+        youtubePlaylistId: { type: ["string", "null"] }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        thumbnailUrl: { type: ["string", "null"] }
+        originalUrl: { type: ["string", "null"] }
+        visibility:
+          type: string
+          enum: [private, public]
+        source:
+          type: string
+          enum: [custom, youtube]
+        videoCount: { type: integer }
+        videos:
+          type: array
+          items: { $ref: "#/components/schemas/Video" }
+        createdAt: { type: string, format: date-time }
+    PlaylistInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        visibility:
+          type: string
+          enum: [private, public]
+    PlaylistUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        visibility:
+          type: string
+          enum: [private, public]
+    PlaylistImportInput:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, minLength: 1 }
+    PlaylistVideoInput:
+      type: object
+      required: [videoId]
+      properties:
+        videoId: { type: string }
+    Profile:
+      type: object
+      required: [username, displayName, avatarUrl, stats, recentEntries, publicPlaylists]
+      properties:
+        username: { type: string }
+        displayName: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        stats:
+          $ref: "#/components/schemas/ProfileStats"
+        recentEntries:
+          type: array
+          items: { $ref: "#/components/schemas/Entry" }
+        publicPlaylists:
+          type: array
+          items: { $ref: "#/components/schemas/Playlist" }
+    ProfileStats:
+      type: object
+      required: [videosSaved, videosWatched, playlistsCreated]
+      properties:
+        videosSaved: { type: integer }
+        videosWatched: { type: integer }
+        playlistsCreated: { type: integer }
+    Dashboard:
+      type: object
+      required: [greeting, watchlist, recentlyAdded, popularThisMonth, popularLists]
+      properties:
+        greeting: { type: string }
+        watchlist:
+          type: array
+          items: { $ref: "#/components/schemas/Entry" }
+        recentlyAdded:
+          type: array
+          items: { $ref: "#/components/schemas/Entry" }
+        popularThisMonth:
+          type: array
+          items: { $ref: "#/components/schemas/Entry" }
+        popularLists:
+          type: array
+          items: { $ref: "#/components/schemas/Playlist" }
+    ExploreData:
+      type: object
+      required: [featured, lists]
+      properties:
+        featured:
+          type: array
+          items: { $ref: "#/components/schemas/Entry" }
+        lists:
+          type: array
+          items: { $ref: "#/components/schemas/Playlist" }
 
