@@ -65,7 +65,7 @@ export default function Onboarding() {
     }
 
     try {
-      await updateProfile.mutateAsync({
+      const savedProfile = await updateProfile.mutateAsync({
         data: {
           username,
           realName: realName.trim() || null,
@@ -75,7 +75,7 @@ export default function Onboarding() {
           onboardingCompleted: true
         }
       });
-      queryClient.invalidateQueries({ queryKey: getGetProfileQueryKey() });
+      queryClient.setQueryData(getGetProfileQueryKey(), savedProfile);
       toast({ title: "Welcome to Cortado!" });
       setLocation("/home");
     } catch (err: any) {
@@ -89,10 +89,10 @@ export default function Onboarding() {
 
   const handleSkip = async () => {
     try {
-      await updateProfile.mutateAsync({
+      const savedProfile = await updateProfile.mutateAsync({
         data: { onboardingCompleted: true }
       });
-      queryClient.invalidateQueries({ queryKey: getGetProfileQueryKey() });
+      queryClient.setQueryData(getGetProfileQueryKey(), savedProfile);
       toast({ title: "Welcome to Cortado!" });
       setLocation("/home");
     } catch (err) {

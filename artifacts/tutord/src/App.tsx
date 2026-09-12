@@ -127,10 +127,11 @@ function HomeRedirect() {
 
 function ProtectedRoute({ component: Component }: { component: any }) {
   const { isLoaded, isSignedIn } = useUser();
-  const { data: profile, isLoading: isProfileLoading } = useGetProfile({
+  const { data: profile, isLoading: isProfileLoading, error, refetch, isFetching } = useGetProfile({
     query: {
       enabled: isLoaded && isSignedIn,
       queryKey: getGetProfileQueryKey(),
+      staleTime: 30_000,
     }
   });
 
@@ -144,6 +145,18 @@ function ProtectedRoute({ component: Component }: { component: any }) {
 
   if (!isLoaded || (isSignedIn && isProfileLoading)) {
     return <div className="min-h-[100dvh] flex items-center justify-center bg-background text-muted-foreground">Loading...</div>;
+  }
+
+  if (isSignedIn && (error || !profile)) {
+    return (
+      <div className="min-h-[100dvh] flex flex-col gap-4 items-center justify-center bg-background px-6 text-center">
+        <h1 className="text-xl font-semibold">We couldn’t load your profile</h1>
+        <p className="text-muted-foreground">Please retry. Your saved library hasn’t been changed.</p>
+        <button className="rounded-xl bg-primary text-primary-foreground px-6 py-3 disabled:opacity-50" disabled={isFetching} onClick={() => void refetch()}>
+          {isFetching ? "Trying again…" : "Try again"}
+        </button>
+      </div>
+    );
   }
 
   return (
