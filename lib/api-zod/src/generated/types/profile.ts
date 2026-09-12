@@ -10,12 +10,27 @@ import type { Playlist } from './playlist';
 import type { ProfileStats } from './profileStats';
 
 export interface Profile {
+  id: string;
+  /**
+     * @minLength 3
+     * @maxLength 24
+     * @pattern ^[a-z][a-z0-9_]{2,23}$
+     */
   username: string;
   displayName: string;
+  /** @nullable */
+  realName: string | null;
+  /** @nullable */
+  bio: string | null;
+  interests: string[];
+  onboardingCompleted: boolean;
   /** @nullable */
   avatarUrl: string | null;
   /** @nullable */
   bannerUrl: string | null;
+  /** @maxItems 4 */
+  topEntryIds: string[];
+  createdAt: Date;
   /** @maxItems 4 */
   topEntries: Entry[];
   stats: ProfileStats;

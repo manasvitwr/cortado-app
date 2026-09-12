@@ -8,15 +8,38 @@ interface VideoCardProps {
   entry?: Entry;
   video?: Video;
   showStatus?: boolean;
+  compact?: boolean;
 }
 
-export function VideoCard({ entry, video, showStatus = true }: VideoCardProps) {
+export function VideoCard({ entry, video, showStatus = true, compact = false }: VideoCardProps) {
   const v = entry ? entry.video : video;
   if (!v) return null;
 
+  if (compact) {
+    return (
+      <Link href={entry ? `/entries/${entry.id}` : `/add?url=${encodeURIComponent(v.originalUrl)}`}>
+        <div className="group flex flex-col gap-2 cursor-pointer w-full">
+          <div className="relative aspect-square w-full overflow-hidden rounded-3xl bg-secondary border border-border group-hover:border-primary/50 transition-all group-hover:shadow-lg group-hover:shadow-primary/5">
+            <img 
+              src={v.thumbnailUrl} 
+              alt={v.title}
+              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
+            <div className="absolute bottom-3 left-3 right-3">
+              <h3 className="font-bold text-sm text-white line-clamp-2 leading-tight tracking-tight shadow-black drop-shadow-md">
+                {v.title}
+              </h3>
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
   return (
     <Link href={entry ? `/entries/${entry.id}` : `/add?url=${encodeURIComponent(v.originalUrl)}`}>
-      <div className="group flex flex-col gap-3 cursor-pointer">
+      <div className="group flex flex-col gap-3 cursor-pointer w-full">
         <div className="relative aspect-video w-full overflow-hidden rounded-[1.5rem] bg-secondary border border-border group-hover:border-primary/50 transition-all group-hover:shadow-lg group-hover:shadow-primary/5">
           <img 
             src={v.thumbnailUrl} 
@@ -43,7 +66,7 @@ export function VideoCard({ entry, video, showStatus = true }: VideoCardProps) {
               {v.title}
             </h3>
             {entry && (
-              <button className="text-muted-foreground hover:text-foreground shrink-0 mt-0.5">
+              <button className="text-muted-foreground hover:text-foreground shrink-0 mt-0.5" onClick={e => e.preventDefault()}>
                 <MoreVertical className="w-4 h-4" />
               </button>
             )}
@@ -81,10 +104,15 @@ export function VideoCard({ entry, video, showStatus = true }: VideoCardProps) {
   );
 }
 
-export function VideoCardSkeleton() {
+export function VideoCardSkeleton({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className="w-full aspect-square rounded-3xl bg-secondary animate-pulse border border-border" />
+    );
+  }
   return (
-    <div className="flex flex-col gap-3">
-      <div className="aspect-video w-full rounded-[1.5rem] bg-secondary animate-pulse" />
+    <div className="flex flex-col gap-3 w-full">
+      <div className="aspect-video w-full rounded-[1.5rem] bg-secondary animate-pulse border border-border" />
       <div className="space-y-2 px-1">
         <div className="h-5 bg-secondary rounded-md animate-pulse w-full" />
         <div className="h-5 bg-secondary rounded-md animate-pulse w-3/4" />

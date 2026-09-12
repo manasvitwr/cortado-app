@@ -580,6 +580,13 @@ export const RemoveVideoFromPlaylistResponse = zod.void()
 /**
  * @summary Get the user's profile and stats
  */
+export const getProfileResponseUsernameMin = 3;
+export const getProfileResponseUsernameMax = 24;
+
+
+export const getProfileResponseUsernameRegExp = new RegExp('^[a-z][a-z0-9_]{2,23}$');
+export const getProfileResponseTopEntryIdsMax = 4;
+
 export const getProfileResponseTopEntriesItemRatingMax = 5;
 
 export const getProfileResponseTopEntriesMax = 4;
@@ -591,10 +598,17 @@ export const getProfileResponseLibraryEntriesItemRatingMax = 5;
 
 
 export const GetProfileResponse = zod.object({
-  "username": zod.string(),
+  "id": zod.string(),
+  "username": zod.string().min(getProfileResponseUsernameMin).max(getProfileResponseUsernameMax).regex(getProfileResponseUsernameRegExp),
   "displayName": zod.string(),
+  "realName": zod.string().nullable(),
+  "bio": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "onboardingCompleted": zod.boolean(),
   "avatarUrl": zod.string().nullable(),
   "bannerUrl": zod.string().nullable(),
+  "topEntryIds": zod.array(zod.string()).max(getProfileResponseTopEntryIdsMax),
+  "createdAt": zod.coerce.date(),
   "topEntries": zod.array(zod.object({
   "id": zod.string(),
   "video": zod.object({
@@ -692,20 +706,43 @@ export const GetProfileResponse = zod.object({
 
 
 /**
- * @summary Update profile art and featured tutorials
+ * @summary Update profile details, art, and featured tutorials
  */
+export const updateProfileBodyUsernameMin = 3;
+export const updateProfileBodyUsernameMax = 24;
+
+
+export const updateProfileBodyUsernameRegExp = new RegExp('^[a-z][a-z0-9_]{2,23}$');
 export const updateProfileBodyDisplayNameMax = 80;
+
+export const updateProfileBodyRealNameMax = 120;
+
+export const updateProfileBodyBioMax = 1000;
+
+export const updateProfileBodyInterestsItemMax = 80;
 
 export const updateProfileBodyTopEntryIdsMax = 4;
 
 
 
 export const UpdateProfileBody = zod.object({
+  "username": zod.string().min(updateProfileBodyUsernameMin).max(updateProfileBodyUsernameMax).regex(updateProfileBodyUsernameRegExp).optional(),
   "displayName": zod.string().min(1).max(updateProfileBodyDisplayNameMax).optional(),
+  "realName": zod.string().max(updateProfileBodyRealNameMax).nullish(),
+  "bio": zod.string().max(updateProfileBodyBioMax).nullish(),
+  "interests": zod.array(zod.string().min(1).max(updateProfileBodyInterestsItemMax)).optional(),
+  "onboardingCompleted": zod.boolean().optional(),
   "avatarUrl": zod.string().nullish(),
   "bannerUrl": zod.string().nullish(),
   "topEntryIds": zod.array(zod.string()).max(updateProfileBodyTopEntryIdsMax).optional()
 })
+
+export const updateProfileResponseUsernameMin = 3;
+export const updateProfileResponseUsernameMax = 24;
+
+
+export const updateProfileResponseUsernameRegExp = new RegExp('^[a-z][a-z0-9_]{2,23}$');
+export const updateProfileResponseTopEntryIdsMax = 4;
 
 export const updateProfileResponseTopEntriesItemRatingMax = 5;
 
@@ -718,10 +755,17 @@ export const updateProfileResponseLibraryEntriesItemRatingMax = 5;
 
 
 export const UpdateProfileResponse = zod.object({
-  "username": zod.string(),
+  "id": zod.string(),
+  "username": zod.string().min(updateProfileResponseUsernameMin).max(updateProfileResponseUsernameMax).regex(updateProfileResponseUsernameRegExp),
   "displayName": zod.string(),
+  "realName": zod.string().nullable(),
+  "bio": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "onboardingCompleted": zod.boolean(),
   "avatarUrl": zod.string().nullable(),
   "bannerUrl": zod.string().nullable(),
+  "topEntryIds": zod.array(zod.string()).max(updateProfileResponseTopEntryIdsMax),
+  "createdAt": zod.coerce.date(),
   "topEntries": zod.array(zod.object({
   "id": zod.string(),
   "video": zod.object({

@@ -1454,7 +1454,7 @@ export const getUpdateProfileUrl = () => {
 }
 
 /**
- * @summary Update profile art and featured tutorials
+ * @summary Update profile details, art, and featured tutorials
  */
 export const updateProfile = async (profileUpdate: ProfileUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Profile> => {
 
@@ -1487,7 +1487,7 @@ return customFetch<Profile>(getUpdateProfileUrl(),
 
 export const getUpdateProfileMutationKey = () => ['updateProfile'] as const;
 
-export const getUpdateProfileMutationOptions = <TError = ErrorType<unknown>,
+export const getUpdateProfileMutationOptions = <TError = ErrorType<Error>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfile>>, TError,UpdateProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateProfile>>, TError,UpdateProfileMutationVariables, TContext> => {
 
@@ -1516,13 +1516,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateProfile>>>
     export type UpdateProfileMutationBody = BodyType<ProfileUpdate>
-    export type UpdateProfileMutationError = ErrorType<unknown>
+    export type UpdateProfileMutationError = ErrorType<Error>
     export type UpdateProfileMutationVariables = {data: BodyType<ProfileUpdate>}
 
     /**
- * @summary Update profile art and featured tutorials
+ * @summary Update profile details, art, and featured tutorials
  */
-export const useUpdateProfile = <TError = ErrorType<unknown>,
+export const useUpdateProfile = <TError = ErrorType<Error>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfile>>, TError,UpdateProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateProfile>>,

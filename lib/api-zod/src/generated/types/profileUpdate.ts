@@ -8,10 +8,32 @@
 
 export interface ProfileUpdate {
   /**
+     * @minLength 3
+     * @maxLength 24
+     * @pattern ^[a-z][a-z0-9_]{2,23}$
+     */
+  username?: string;
+  /**
      * @minLength 1
      * @maxLength 80
      */
   displayName?: string;
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  realName?: string | null;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  bio?: string | null;
+  /**
+     * @items.minLength 1
+     * @items.maxLength 80
+     */
+  interests?: string[];
+  onboardingCompleted?: boolean;
   /** @nullable */
   avatarUrl?: string | null;
   /** @nullable */

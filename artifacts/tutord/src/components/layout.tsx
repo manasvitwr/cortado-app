@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { Home, Compass, Plus, LayoutList, User } from "lucide-react";
-import { Button } from "./ui/button";
+import { Home, Compass, Plus, LayoutList, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGetProfile } from "@workspace/api-client-react";
+import { useClerk } from "@clerk/react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,8 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
+  const { data: profile } = useGetProfile();
+  const { signOut } = useClerk();
 
   const navItems = [
     { href: "/home", icon: Home, label: "Home" },
@@ -19,60 +22,123 @@ export function Layout({ children }: LayoutProps) {
   ];
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-background items-center w-full">
-      {/* Desktop Header */}
-      <header className="hidden md:flex w-full h-20 border-b border-border bg-background/80 backdrop-blur-xl items-center justify-center sticky top-0 z-50">
-        <div className="w-full max-w-screen-md px-6 flex justify-between items-center">
-          <Link href="/home" className="text-xl font-bold text-primary flex items-center gap-2 tracking-tight">
-            <img src="/logo.svg" alt="Tutord" className="w-6 h-6" />
-            Tutord
-          </Link>
-          <nav className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border shadow-sm">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.href;
-              return (
-                <Link key={item.href} href={item.href}>
-                  <Button variant={isActive ? "secondary" : "ghost"} size="sm" className="gap-2 rounded-xl px-4 font-medium transition-all">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </Button>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      </header>
+    <div className="flex min-h-[100dvh] bg-background w-full">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col w-64 lg:w-72 border-r border-border bg-background sticky top-0 h-[100dvh] overflow-y-auto px-6 py-8">
+        <Link href="/home" className="flex items-center gap-3 text-xl font-bold text-foreground mb-12 tracking-tight transition-opacity hover:opacity-80">
+          <img src="/cortado-logo.png" alt="Cortado" className="w-8 h-8 object-contain" />
+          Cortado
+        </Link>
+
+        {profile && (
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-secondary shrink-0 border border-border">
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={profile.displayName} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-secondary">
+                  <User className="w-6 h-6 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <div className="overflow-hidden">
+              <p className="font-bold text-base text-foreground truncate">{profile.displayName}</p>
+              <p className="text-sm text-muted-foreground truncate">@{profile.username}</p>
+            </div>
+          </div>
+        )}
+
+        {profile && (
+          <div className="flex gap-2 mb-8">
+            <div className="flex-1 rounded-xl border border-border bg-card py-2 px-3 text-center">
+              <p className="text-xs text-muted-foreground font-medium mb-0.5">Videos</p>
+              <p className="font-bold text-sm text-foreground">{profile.stats.videosSaved}</p>
+            </div>
+            <div className="flex-1 rounded-xl border border-border bg-card py-2 px-3 text-center">
+              <p className="text-xs text-muted-foreground font-medium mb-0.5">Lists</p>
+              <p className="font-bold text-sm text-foreground">{profile.stats.playlistsCreated}</p>
+            </div>
+          </div>
+        )}
+
+        <nav className="flex flex-col gap-2 flex-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location === item.href;
+            return (
+              <Link key={item.href} href={item.href}>
+                <div className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all cursor-pointer",
+                  isActive 
+                    ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" 
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground font-medium"
+                )}>
+                  <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+                  <span>{item.label}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <button 
+          onClick={() => signOut()}
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-muted-foreground hover:bg-secondary hover:text-foreground font-medium mt-auto"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>Logout</span>
+        </button>
+      </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-screen-md px-4 md:px-6 py-6 pb-28 md:pb-8 flex flex-col relative">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 pb-28 md:pb-8 flex flex-col relative min-w-0">
+        {/* Mobile Header */}
+        <header className="md:hidden flex items-center justify-between mb-6 pt-2">
+          <Link href="/home" className="flex items-center gap-2 text-lg font-bold text-foreground tracking-tight">
+            <img src="/cortado-logo.png" alt="Cortado" className="w-6 h-6 object-contain" />
+            Cortado
+          </Link>
+          {profile && (
+            <Link href="/profile">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-secondary border border-border">
+                {profile.avatarUrl ? (
+                  <img src={profile.avatarUrl} alt={profile.displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-secondary">
+                    <User className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            </Link>
+          )}
+        </header>
+
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation - Floating Pill */}
-      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 h-[64px] border border-border/50 bg-card/90 backdrop-blur-xl z-50 flex items-center justify-around px-2 rounded-[2rem] w-[calc(100%-2rem)] max-w-sm shadow-2xl shadow-black/50">
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-border bg-background/90 backdrop-blur-xl z-50 flex items-center justify-around px-2 h-16 pb-safe shadow-2xl">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.href;
           
           if (item.href === "/add") {
             return (
-              <Link key={item.href} href={item.href} className="relative z-10 flex items-center justify-center -top-4">
+              <Link key={item.href} href={item.href} className="relative z-10 flex items-center justify-center -mt-6">
                 <div className={cn(
-                  "w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 border-[4px] border-background",
-                  isActive ? "bg-primary text-primary-foreground shadow-primary/20" : "bg-card border-border text-primary"
+                  "w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-95 shadow-lg",
+                  isActive ? "bg-primary text-primary-foreground shadow-primary/30" : "bg-card border border-border text-primary"
                 )}>
-                  <Icon className="w-6 h-6" strokeWidth={3} />
+                  <Icon className="w-6 h-6" strokeWidth={2.5} />
                 </div>
               </Link>
             );
           }
           
           return (
-            <Link key={item.href} href={item.href} className="flex-1 flex justify-center items-center h-full">
-              <button className={cn("w-12 h-12 rounded-full flex items-center justify-center transition-all", isActive ? "bg-secondary text-primary" : "text-muted-foreground hover:text-foreground")}>
-                <Icon className={cn("w-6 h-6 transition-transform", isActive && "scale-110")} strokeWidth={isActive ? 2.5 : 2} />
-              </button>
+            <Link key={item.href} href={item.href} className="flex-1 flex flex-col justify-center items-center h-full gap-1 pt-1">
+              <Icon className={cn("w-5 h-5 transition-transform", isActive ? "text-primary scale-110" : "text-muted-foreground")} strokeWidth={isActive ? 2.5 : 2} />
+              <span className={cn("text-[10px] font-medium transition-colors", isActive ? "text-primary" : "text-muted-foreground")}>{item.label}</span>
             </Link>
           );
         })}

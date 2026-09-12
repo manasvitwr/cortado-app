@@ -5,9 +5,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import NotFound from "@/pages/not-found";
 import { Route, Switch, useLocation, Router as WouterRouter, Redirect } from "wouter";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { dark } from "@clerk/themes";
+import { getGetProfileQueryKey, useGetProfile } from "@workspace/api-client-react";
 
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
@@ -17,6 +18,7 @@ import Lists from "@/pages/lists";
 import ListDetail from "@/pages/list-detail";
 import Profile from "@/pages/profile";
 import EntryDetail from "@/pages/entry-detail";
+import Onboarding from "@/pages/onboarding";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,28 +48,28 @@ if (!clerkPubKey) {
 }
 
 const clerkAppearance = {
-  theme: dark, // Using dark theme as the app is dark navy/purple
+  theme: dark,
   cssLayerName: "clerk",
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/cortado-logo.png`,
   },
   variables: {
-    colorPrimary: "hsl(15 80% 70%)", // Dusty Peach
+    colorPrimary: "hsl(353 67% 80%)", // Peach
     colorForeground: "hsl(0 0% 100%)",
-    colorMutedForeground: "hsl(245 20% 70%)",
+    colorMutedForeground: "hsl(245 15% 65%)",
     colorDanger: "hsl(0 84% 60%)",
-    colorBackground: "hsl(245 45% 8%)",
-    colorInput: "hsl(245 35% 15%)",
+    colorBackground: "hsl(245 28% 12%)",
+    colorInput: "hsl(245 20% 20%)",
     colorInputForeground: "hsl(0 0% 100%)",
-    colorNeutral: "hsl(245 35% 15%)",
+    colorNeutral: "hsl(245 20% 20%)",
     fontFamily: "'Outfit', sans-serif",
     borderRadius: "1.5rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "bg-[hsl(245_40%_12%)] rounded-[2rem] w-[440px] max-w-full overflow-hidden border border-[hsl(245_35%_16%)] shadow-2xl",
+    cardBox: "bg-[hsl(245_26%_16%)] rounded-[2rem] w-[440px] max-w-full overflow-hidden border border-[hsl(245_20%_22%)] shadow-2xl",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
     headerTitle: "text-foreground font-bold text-2xl tracking-tight",
@@ -81,7 +83,7 @@ const clerkAppearance = {
     formFieldSuccessText: "text-primary",
     alertText: "text-destructive",
     logoBox: "mb-6 flex justify-center",
-    logoImage: "w-10 h-10",
+    logoImage: "w-10 h-10 object-contain",
     socialButtonsBlockButton: "bg-secondary border-border hover:bg-secondary/80 rounded-xl h-12 transition-colors",
     formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl h-12 shadow-sm font-semibold transition-colors",
     formFieldInput: "bg-input border-border text-foreground rounded-xl h-12 px-4 focus:ring-2 focus:ring-ring focus:border-transparent transition-all",
@@ -96,7 +98,7 @@ const clerkAppearance = {
 
 function SignInPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-8">
       <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
     </div>
   );
@@ -104,7 +106,7 @@ function SignInPage() {
 
 function SignUpPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-8">
       <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
     </div>
   );
@@ -124,10 +126,30 @@ function HomeRedirect() {
 }
 
 function ProtectedRoute({ component: Component }: { component: any }) {
+  const { isLoaded, isSignedIn } = useUser();
+  const { data: profile, isLoading: isProfileLoading } = useGetProfile({
+    query: {
+      enabled: isLoaded && isSignedIn,
+      queryKey: getGetProfileQueryKey(),
+    }
+  });
+
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn && profile && !profile.onboardingCompleted && location !== '/onboarding') {
+      setLocation('/onboarding');
+    }
+  }, [isLoaded, isSignedIn, profile, location, setLocation]);
+
+  if (!isLoaded || (isSignedIn && isProfileLoading)) {
+    return <div className="min-h-[100dvh] flex items-center justify-center bg-background text-muted-foreground">Loading...</div>;
+  }
+
   return (
     <>
       <Show when="signed-in">
-        <Component />
+        {(profile?.onboardingCompleted || location === '/onboarding') ? <Component /> : <div className="min-h-[100dvh] flex items-center justify-center bg-background text-muted-foreground">Redirecting...</div>}
       </Show>
       <Show when="signed-out">
         <Redirect to="/" />
@@ -193,6 +215,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
             
+            <Route path="/onboarding"><ProtectedRoute component={Onboarding} /></Route>
             <Route path="/home"><ProtectedRoute component={Home} /></Route>
             <Route path="/explore"><ProtectedRoute component={Explore} /></Route>
             <Route path="/add"><ProtectedRoute component={Add} /></Route>

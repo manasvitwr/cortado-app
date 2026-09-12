@@ -4,12 +4,21 @@ import { VideoCard } from "@/components/video-card";
 import { ListCard } from "@/components/list-card";
 import { useClerk } from "@clerk/react";
 import { Button } from "@/components/ui/button";
-import { LogOut, User as UserIcon, PlaySquare, Bookmark, FolderHeart, Plus, Camera, X, Loader2, Star } from "lucide-react";
+import { Input, Textarea } from "@/components/ui";
+import { LogOut, User as UserIcon, PlaySquare, Bookmark, FolderHeart, Plus, Camera, X, Loader2, Star, Edit3, Check } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+const PRESET_INTERESTS = [
+  "Web Development", "Data Science", "Design", "Machine Learning", 
+  "Productivity", "Finance", "Music Production", "Filmmaking", 
+  "History", "Math", "Physics", "Cooking"
+];
 
 function ImageUploadArea({ 
   type, 
@@ -107,10 +116,68 @@ export default function Profile() {
   const requestUrl = useRequestUploadUrl();
   const queryClient = useQueryClient();
   const { signOut } = useClerk();
+  const { toast } = useToast();
   
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Edit Profile Form State
+  const [editUsername, setEditUsername] = useState("");
+  const [editRealName, setEditRealName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editInterests, setEditInterests] = useState<string[]>([]);
+  const [editError, setEditError] = useState("");
+
+  useEffect(() => {
+    if (data && isEditProfileOpen) {
+      setEditUsername(data.username || "");
+      setEditRealName(data.realName || "");
+      setEditBio(data.bio || "");
+      setEditInterests(data.interests || []);
+      setEditError("");
+    }
+  }, [data, isEditProfileOpen]);
+
+  const toggleInterest = (interest: string) => {
+    setEditInterests(prev => 
+      prev.includes(interest) 
+        ? prev.filter(i => i !== interest)
+        : [...prev, interest]
+    );
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError("");
+
+    if (editUsername.length < 3 || editUsername.length > 24) {
+      setEditError("Username must be between 3 and 24 characters.");
+      return;
+    }
+
+    try {
+      await updateProfile.mutateAsync({
+        data: {
+          username: editUsername,
+          realName: editRealName.trim() || null,
+          displayName: editRealName.trim() || "Anonymous",
+          bio: editBio || null,
+          interests: editInterests,
+        }
+      });
+      queryClient.invalidateQueries({ queryKey: getGetProfileQueryKey() });
+      setIsEditProfileOpen(false);
+      toast({ title: "Profile updated successfully." });
+    } catch (err: any) {
+      if (err?.status === 409) {
+        setEditError("That username is already taken. Please choose another.");
+      } else {
+        setEditError("Failed to update profile. Please try again.");
+      }
+    }
+  };
 
   const handleUpload = async (file: File, type: 'banner' | 'avatar') => {
     const setUploading = type === 'banner' ? setUploadingBanner : setUploadingAvatar;
@@ -134,7 +201,7 @@ export default function Profile() {
       queryClient.setQueryData(getGetProfileQueryKey(), (old: any) => old ? { ...old, [`${type}Url`]: finalUrl } : old);
     } catch (err) {
       console.error(err);
-      alert("Failed to upload image.");
+      toast({ title: "Error", description: "Failed to upload image.", variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -184,7 +251,7 @@ export default function Profile() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="space-y-8 animate-pulse">
+        <div className="space-y-8 animate-pulse w-full">
           <div className="h-48 bg-secondary rounded-[2rem] w-full" />
           <div className="flex gap-4">
             {[1, 2, 3].map(i => <div key={i} className="h-24 flex-1 bg-secondary rounded-2xl" />)}
@@ -206,25 +273,34 @@ export default function Profile() {
 
   return (
     <Layout>
-      <div className="animate-in fade-in duration-500 w-full max-w-screen-md mx-auto space-y-8">
+      <div className="animate-in fade-in duration-500 w-full max-w-screen-md mx-auto space-y-8 pb-12">
         
         {/* Header Profile Section */}
         <div className="relative rounded-[2rem] overflow-hidden bg-card border border-border shadow-xl">
           <ImageUploadArea type="banner" currentUrl={data.bannerUrl} onUpload={(f) => handleUpload(f, 'banner')} isUploading={uploadingBanner} />
           
           <div className="flex flex-col sm:flex-row justify-between px-4 sm:px-8 pb-6">
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-end">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-end w-full">
               <ImageUploadArea type="avatar" currentUrl={data.avatarUrl} onUpload={(f) => handleUpload(f, 'avatar')} isUploading={uploadingAvatar} />
               
-              <div className="mt-1 sm:mt-0 sm:pb-1">
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">{data.displayName}</h1>
-                <p className="text-primary font-semibold">@{data.username}</p>
+              <div className="mt-1 sm:mt-0 sm:pb-1 flex-1 w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight text-foreground">{data.displayName}</h1>
+                  <p className="text-primary font-semibold">@{data.username}</p>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="secondary" size="sm" className="rounded-xl gap-2 font-bold" onClick={() => setIsEditProfileOpen(true)}>
+                    <Edit3 className="w-4 h-4" /> Edit Profile
+                  </Button>
+                </div>
               </div>
             </div>
-            <Button variant="secondary" size="sm" className="mt-4 sm:mt-0 sm:self-end rounded-xl gap-2 font-bold" onClick={() => signOut()}>
-              <LogOut className="w-4 h-4" /> Sign Out
-            </Button>
           </div>
+          {data.bio && (
+            <div className="px-4 sm:px-8 pb-6 text-sm text-foreground font-medium max-w-2xl leading-relaxed">
+              {data.bio}
+            </div>
+          )}
         </div>
 
         {/* Top 4 Section */}
@@ -343,6 +419,88 @@ export default function Profile() {
           </div>
         </DrawerContent>
       </Drawer>
+
+      {/* Edit Profile Dialog */}
+      <Dialog.Root open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-xl max-h-[90vh] overflow-y-auto hide-scrollbar bg-card rounded-[2rem] p-6 sm:p-8 shadow-2xl z-[101] border border-border outline-none">
+            <Dialog.Title className="text-2xl font-bold mb-6 tracking-tight">Edit Profile</Dialog.Title>
+            
+            {editError && (
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl mb-6 text-sm font-bold text-center">
+                {editError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-sm font-bold">Username <span className="text-destructive">*</span></label>
+                <Input 
+                  value={editUsername} 
+                  onChange={e => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} 
+                  required 
+                  minLength={3}
+                  maxLength={24}
+                  className="h-12 rounded-xl bg-input border-border text-base" 
+                />
+                <p className="text-xs text-muted-foreground font-medium mt-1">Only lowercase letters, numbers, and underscores.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold">Name</label>
+                <Input 
+                  value={editRealName} 
+                  onChange={e => setEditRealName(e.target.value)} 
+                  placeholder="e.g. Jane Doe"
+                  className="h-12 rounded-xl bg-input border-border text-base" 
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold">Bio</label>
+                <Textarea 
+                  value={editBio} 
+                  onChange={e => setEditBio(e.target.value)} 
+                  maxLength={120}
+                  className="min-h-[100px] rounded-xl bg-input border-border text-base resize-none" 
+                />
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <label className="text-sm font-bold">Interests</label>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_INTERESTS.map(interest => {
+                    const selected = editInterests.includes(interest);
+                    return (
+                      <button
+                        key={interest}
+                        type="button"
+                        onClick={() => toggleInterest(interest)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                          selected 
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20" 
+                            : "bg-input border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        )}
+                      >
+                        {selected && <Check className="w-3 h-3 inline-block mr-1 -mt-0.5" />}
+                        {interest}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 mt-8 py-4 border-t border-border bg-card">
+                <Button type="button" variant="ghost" onClick={() => setIsEditProfileOpen(false)} className="rounded-xl font-bold h-12 px-6">Cancel</Button>
+                <Button type="submit" isLoading={updateProfile.isPending} className="rounded-xl font-bold h-12 px-8 shadow-lg shadow-primary/20">Save Changes</Button>
+              </div>
+            </form>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
     </Layout>
   );
 }

@@ -43,33 +43,33 @@
 }
 
 :root, .dark {
-  /* Deep Violet / Navy surfaces */
-  --background: 245 45% 8%; 
+  /* Deep Violet / Navy surfaces from references */
+  --background: 245 28% 12%; 
   --foreground: 0 0% 100%;
   
-  --border: 245 35% 15%;
-  --input: 245 35% 15%;
-  --ring: 15 80% 70%; /* Dusty Peach */
+  --border: 245 20% 20%;
+  --input: 245 20% 20%;
+  --ring: 353 67% 80%; /* Peach */
 
-  --card: 245 40% 12%; 
+  --card: 245 26% 16%; 
   --card-foreground: 0 0% 100%;
-  --card-border: 245 35% 16%;
+  --card-border: 245 20% 22%;
 
-  --popover: 245 40% 12%;
+  --popover: 245 26% 16%;
   --popover-foreground: 0 0% 100%;
-  --popover-border: 245 35% 16%;
+  --popover-border: 245 20% 22%;
 
-  --primary: 15 80% 70%; /* Dusty Peach */
-  --primary-foreground: 15 85% 15%;
+  --primary: 353 67% 80%; /* Peach */
+  --primary-foreground: 353 60% 15%;
 
-  --secondary: 245 35% 18%;
+  --secondary: 245 20% 24%;
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 245 30% 20%;
-  --muted-foreground: 245 20% 70%;
+  --muted: 245 20% 26%;
+  --muted-foreground: 245 15% 65%;
 
-  --accent: 15 80% 70%;
-  --accent-foreground: 15 85% 15%;
+  --accent: 353 67% 80%;
+  --accent-foreground: 353 60% 15%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
@@ -91,7 +91,7 @@
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-image: linear-gradient(to right, hsl(var(--primary)), hsl(330, 80%, 75%));
+  background-image: linear-gradient(to right, hsl(var(--primary)), hsl(15, 80%, 70%));
 }
 
 .line-clamp-2 {
@@ -121,6 +121,11 @@
 
 [data-state="active"] {
   animation: scale-up 0.2s ease-out forwards;
+}
+
+.cl-socialButtonsBlockButton,
+.cl-socialButtonsBlockButtonText {
+  color: #ffffff !important;
 }
 
 @keyframes scale-up {

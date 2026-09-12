@@ -1,117 +1,109 @@
 import { Layout } from "@/components/layout";
+import { useGetDashboard } from "@workspace/api-client-react";
 import { VideoCard, VideoCardSkeleton } from "@/components/video-card";
 import { ListCard, ListCardSkeleton } from "@/components/list-card";
-import { useGetDashboard } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 import { Link } from "wouter";
-import { ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui";
 
 export default function Home() {
   const { data, isLoading, error } = useGetDashboard();
 
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-64 bg-card rounded-[2rem] border border-border p-8 text-center mt-10">
+          <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+          <h2 className="text-xl font-bold mb-2 tracking-tight">Something went wrong</h2>
+          <p className="text-muted-foreground font-medium">We couldn't load your dashboard. Please try refreshing.</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      {isLoading ? (
-        <div className="space-y-10 animate-in fade-in duration-500">
-          <div>
-            <div className="h-8 w-48 bg-secondary rounded-lg animate-pulse mb-2" />
-            <div className="h-5 w-64 bg-secondary rounded-lg animate-pulse" />
-          </div>
-          <section>
-            <div className="h-6 w-32 bg-secondary rounded animate-pulse mb-4" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => <VideoCardSkeleton key={i} />)}
+      <div className="space-y-12 animate-in fade-in duration-500 pb-10">
+        <header className="pt-4 px-2">
+          {isLoading ? (
+            <div className="space-y-3">
+              <div className="h-10 w-64 bg-secondary rounded-xl animate-pulse" />
+              <div className="h-5 w-48 bg-secondary/50 rounded-lg animate-pulse" />
             </div>
-          </section>
-        </div>
-      ) : error || !data ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-card rounded-[2rem] border border-border shadow-xl">
-          <p className="text-destructive font-medium mb-2">Could not load dashboard</p>
-          <p className="text-sm text-muted-foreground">Please try refreshing the page.</p>
-        </div>
-      ) : (
-        <div className="space-y-10 animate-in fade-in duration-500">
-          <header className="px-1">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">{data.greeting}</h1>
-            <p className="text-muted-foreground mt-1 font-medium">Ready to learn something new today?</p>
-          </header>
-
-          {data.watchlist.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-4 px-1">
-                <h2 className="text-xl font-bold tracking-tight">Continue Watching</h2>
-              </div>
-              <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-3">
-                {data.watchlist.slice(0, 4).map(entry => (
-                  <div className="w-[260px] shrink-0 snap-center sm:w-auto" key={entry.id}>
-                    <VideoCard entry={entry} />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {data.recentlyAdded.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-4 px-1">
-                <h2 className="text-xl font-bold tracking-tight">Recently Added</h2>
-                <Link href="/profile" className="text-sm text-primary hover:underline flex items-center font-semibold">
-                  See all <ChevronRight className="w-4 h-4 ml-0.5" />
-                </Link>
-              </div>
-              <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-3">
-                {data.recentlyAdded.slice(0, 4).map(entry => (
-                  <div className="w-[260px] shrink-0 snap-center sm:w-auto" key={entry.id}>
-                    <VideoCard entry={entry} />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {(data.popularThisMonth.length > 0 || data.popularLists.length > 0) && (
-            <div className="pt-8 border-t border-border/50">
-              <div className="flex items-center justify-between mb-6 px-1">
-                <h2 className="text-xl font-bold tracking-tight">Trending This Month</h2>
-                <Link href="/explore" className="text-sm text-primary hover:underline flex items-center font-semibold">
-                  Explore <ChevronRight className="w-4 h-4 ml-0.5" />
-                </Link>
-              </div>
-              
-              {data.popularThisMonth.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-                  {data.popularThisMonth.slice(0, 3).map(entry => (
-                    <VideoCard key={entry.id} entry={entry} />
-                  ))}
-                </div>
-              )}
-
-              {data.popularLists.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {data.popularLists.slice(0, 2).map(list => (
-                    <ListCard key={list.id} playlist={list} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {data.watchlist.length === 0 && data.recentlyAdded.length === 0 && (
-            <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-[2rem] border border-border border-dashed shadow-sm mt-8">
-              <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4">
-                <img src="/logo.svg" className="w-8 h-8 opacity-50 grayscale" alt="" />
-              </div>
-              <h3 className="text-lg font-bold mb-2 tracking-tight">Your library is empty</h3>
-              <p className="text-muted-foreground text-sm max-w-md mb-6 font-medium">
-                Start building your personal learning library by saving a YouTube tutorial or playlist.
+          ) : (
+            <>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-1">
+                {data?.greeting}
+              </h1>
+              <p className="text-muted-foreground font-medium text-sm sm:text-base">
+                Review or track tutorials you've watched...
               </p>
-              <Link href="/add">
-                <Button className="rounded-xl font-semibold">Save a Video</Button>
-              </Link>
-            </div>
+            </>
           )}
-        </div>
-      )}
+        </header>
+
+        {/* Watchlist */}
+        <section className="px-2">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">Your Watchlist</h2>
+            <Link href="/profile"><span className="text-sm font-bold text-primary hover:underline cursor-pointer">See All</span></Link>
+          </div>
+          
+          <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 snap-x">
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="w-[280px] sm:w-[320px] shrink-0 snap-center"><VideoCardSkeleton /></div>
+              ))
+            ) : data?.watchlist && data.watchlist.length > 0 ? (
+              data.watchlist.map((entry) => (
+                <div key={entry.id} className="w-[280px] sm:w-[320px] shrink-0 snap-center">
+                  <VideoCard entry={entry} />
+                </div>
+              ))
+            ) : (
+              <div className="w-full bg-card/50 border border-border border-dashed rounded-[2rem] p-8 text-center flex flex-col items-center">
+                <p className="text-muted-foreground font-medium mb-4">Nothing in your watchlist right now.</p>
+                <Link href="/add">
+                  <Button variant="secondary" className="rounded-xl font-bold">Add a Tutorial</Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Popular This Month */}
+        <section className="px-2">
+          <h2 className="text-xl font-bold tracking-tight text-foreground mb-5">Popular This Month</h2>
+          <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 snap-x">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="w-[160px] sm:w-[200px] shrink-0 snap-center"><VideoCardSkeleton /></div>
+              ))
+            ) : data?.popularThisMonth?.map((entry) => (
+              <div key={entry.id} className="w-[160px] sm:w-[200px] shrink-0 snap-center">
+                <VideoCard entry={entry} compact />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Popular Lists */}
+        <section className="px-2">
+          <h2 className="text-xl font-bold tracking-tight text-foreground mb-5">Popular Lists This Month</h2>
+          <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 snap-x">
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="w-[280px] sm:w-[320px] shrink-0 snap-center"><ListCardSkeleton /></div>
+              ))
+            ) : data?.popularLists?.map((list) => (
+              <div key={list.id} className="w-[280px] sm:w-[320px] shrink-0 snap-center">
+                <ListCard playlist={list} />
+              </div>
+            ))}
+          </div>
+        </section>
+
+      </div>
     </Layout>
   );
 }

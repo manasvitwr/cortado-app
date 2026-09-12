@@ -294,7 +294,7 @@ paths:
     patch:
       operationId: updateProfile
       tags: [profile]
-      summary: Update profile art and featured tutorials
+      summary: Update profile details, art, and featured tutorials
       requestBody:
         required: true
         content:
@@ -308,6 +308,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Profile"
+        "400":
+          description: Invalid profile data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Username is already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /storage/uploads/request-url:
     post:
       tags: [profile]
@@ -487,12 +499,29 @@ components:
         videoId: { type: string }
     Profile:
       type: object
-      required: [username, displayName, avatarUrl, bannerUrl, topEntries, stats, recentEntries, libraryEntries, publicPlaylists]
+      required: [id, username, displayName, realName, bio, interests, onboardingCompleted, avatarUrl, bannerUrl, topEntryIds, createdAt, topEntries, stats, recentEntries, libraryEntries, publicPlaylists]
       properties:
-        username: { type: string }
+        id: { type: string }
+        username:
+          type: string
+          minLength: 3
+          maxLength: 24
+          pattern: "^[a-z][a-z0-9_]{2,23}$"
         displayName: { type: string }
+        realName: { type: ["string", "null"] }
+        bio: { type: ["string", "null"] }
+        interests:
+          type: array
+          items: { type: string }
+        onboardingCompleted: { type: boolean }
         avatarUrl: { type: ["string", "null"] }
         bannerUrl: { type: ["string", "null"] }
+        topEntryIds:
+          type: array
+          maxItems: 4
+          uniqueItems: true
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
         topEntries:
           type: array
           maxItems: 4
@@ -511,7 +540,18 @@ components:
     ProfileUpdate:
       type: object
       properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 24
+          pattern: "^[a-z][a-z0-9_]{2,23}$"
         displayName: { type: string, minLength: 1, maxLength: 80 }
+        realName: { type: ["string", "null"], maxLength: 120 }
+        bio: { type: ["string", "null"], maxLength: 1000 }
+        interests:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 80 }
+        onboardingCompleted: { type: boolean }
         avatarUrl: { type: ["string", "null"] }
         bannerUrl: { type: ["string", "null"] }
         topEntryIds:

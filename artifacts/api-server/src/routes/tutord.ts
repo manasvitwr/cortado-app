@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request } from "express";
-import { getAuth } from "@clerk/express";
+import { clerkClient, getAuth } from "@clerk/express";
 import {
   AddVideoToPlaylistBody,
   AddVideoToPlaylistParams,
@@ -60,6 +60,33 @@ const allowedProfileImageTypes = new Set([
   "image/webp",
   "image/gif",
 ]);
+const defaultUsernameAdjectives = [
+  "amber",
+  "bright",
+  "calm",
+  "clever",
+  "cosmic",
+  "curious",
+  "gentle",
+  "happy",
+  "kind",
+  "mellow",
+  "quiet",
+  "sunny",
+];
+const defaultUsernameNouns = [
+  "badger",
+  "bison",
+  "falcon",
+  "otter",
+  "panda",
+  "rabbit",
+  "robin",
+  "sloth",
+  "tiger",
+  "whale",
+  "wren",
+];
 
 async function validateAndPublishProfileImage(
   value: string | null | undefined,
@@ -102,6 +129,106 @@ function requireUserId(req: Request): string {
   const userId = currentUserId(req);
   if (!userId) throw new Error("UNAUTHORIZED");
   return userId;
+}
+
+function stableHash(value: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function defaultUsername(userId: string, attempt: number): string {
+  const hash = stableHash(`${userId}:${attempt}`);
+  const adjective = defaultUsernameAdjectives[hash % defaultUsernameAdjectives.length];
+  const noun =
+    defaultUsernameNouns[
+      Math.floor(hash / defaultUsernameAdjectives.length) %
+        defaultUsernameNouns.length
+    ];
+  const suffix = hash.toString(36).padStart(7, "0").slice(-7);
+  return `${adjective}_${noun}_${suffix}`.slice(0, 24);
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23505"
+  );
+}
+
+function nameFromParts(firstName: unknown, lastName: unknown): string | null {
+  const name = [firstName, lastName]
+    .filter((part): part is string => typeof part === "string")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ");
+  return name || null;
+}
+
+async function clerkDisplayName(userId: string): Promise<string> {
+  try {
+    const user = await clerkClient.users.getUser(userId);
+    const userWithFullName = user as typeof user & { fullName?: unknown };
+    const fullName =
+      typeof userWithFullName.fullName === "string"
+        ? userWithFullName.fullName.trim()
+        : "";
+    if (fullName) return fullName;
+    const ownName = nameFromParts(user.firstName, user.lastName);
+    if (ownName) return ownName;
+    for (const account of user.externalAccounts ?? []) {
+      const accountWithFullName = account as typeof account & { fullName?: unknown };
+      if (
+        typeof accountWithFullName.fullName === "string" &&
+        accountWithFullName.fullName.trim()
+      ) {
+        return accountWithFullName.fullName.trim();
+      }
+      const socialName = nameFromParts(account.firstName, account.lastName);
+      if (socialName) return socialName;
+    }
+  } catch {
+    // Clerk may not be configured in local/test environments.
+  }
+  return "Anonymous";
+}
+
+async function ensureProfile(userId: string) {
+  const [existing] = await db
+    .select()
+    .from(profilesTable)
+    .where(eq(profilesTable.id, userId))
+    .limit(1);
+  if (existing) return existing;
+
+  const displayName = await clerkDisplayName(userId);
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    try {
+      const [profile] = await db
+        .insert(profilesTable)
+        .values({
+          id: userId,
+          username: defaultUsername(userId, attempt),
+          displayName,
+        })
+        .returning();
+      if (profile) return profile;
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
+      const [racedProfile] = await db
+        .select()
+        .from(profilesTable)
+        .where(eq(profilesTable.id, userId))
+        .limit(1);
+      if (racedProfile) return racedProfile;
+    }
+  }
+  throw new Error("Could not generate a unique username");
 }
 
 function videoJson(video: VideoRecord) {
@@ -772,47 +899,30 @@ router.delete(
 router.get("/profile", async (req, res): Promise<void> => {
   try {
     const userId = requireUserId(req);
-    const [entryRows, playlists, profileRows] = await Promise.all([
+    const [entryRows, playlists] = await Promise.all([
       getEntryRows(userId),
       db
         .select()
         .from(playlistsTable)
         .where(eq(playlistsTable.ownerId, userId))
         .orderBy(desc(playlistsTable.createdAt)),
-      db
-        .select()
-        .from(profilesTable)
-        .where(eq(profilesTable.id, userId))
-        .limit(1),
     ]);
-    let profile = profileRows[0];
-    if (!profile) {
-      const shortId = userId.replace(/[^a-zA-Z0-9]/g, "").slice(-8);
-      [profile] = await db
-        .insert(profilesTable)
-        .values({
-          id: userId,
-          username: `learner_${shortId}`,
-          displayName: "Tutord learner",
-        })
-        .onConflictDoNothing()
-        .returning();
-      if (!profile) {
-        [profile] = await db
-          .select()
-          .from(profilesTable)
-          .where(eq(profilesTable.id, userId))
-          .limit(1);
-      }
-    }
+    const profile = await ensureProfile(userId);
     const entries = entryRows.map(({ entry, video }) => entryJson(entry, video));
     const entriesById = new Map(entries.map((entry) => [entry.id, entry]));
     res.json(
       GetProfileResponse.parse({
+        id: profile.id,
         username: profile.username,
         displayName: profile.displayName,
+        realName: profile.realName,
+        bio: profile.bio,
+        interests: profile.interests,
+        onboardingCompleted: profile.onboardingCompleted,
         avatarUrl: profile.avatarUrl,
         bannerUrl: profile.bannerUrl,
+        topEntryIds: profile.topEntryIds,
+        createdAt: profile.createdAt.toISOString(),
         topEntries: profile.topEntryIds
           .map((id) => entriesById.get(id))
           .filter((entry) => entry !== undefined),
@@ -843,7 +953,21 @@ router.get("/profile", async (req, res): Promise<void> => {
 router.patch("/profile", async (req, res): Promise<void> => {
   try {
     const userId = requireUserId(req);
-    const data = UpdateProfileBody.parse(req.body);
+    const requestBody =
+      req.body && typeof req.body === "object"
+        ? {
+            ...req.body,
+            ...(typeof req.body.username === "string"
+              ? { username: req.body.username.toLowerCase() }
+              : {}),
+          }
+        : req.body;
+    const parsed = UpdateProfileBody.safeParse(requestBody);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const data = parsed.data;
     const entryRows = await getEntryRows(userId);
     const ownedEntryIds = new Set(entryRows.map(({ entry }) => entry.id));
     const topEntryIds = data.topEntryIds ?? undefined;
@@ -866,27 +990,53 @@ router.patch("/profile", async (req, res): Promise<void> => {
       return;
     }
 
-    const shortId = userId.replace(/[^a-zA-Z0-9]/g, "").slice(-8);
-    const [profile] = await db
-      .insert(profilesTable)
-      .values({
-        id: userId,
-        username: `learner_${shortId}`,
-        displayName: data.displayName ?? "Tutord learner",
-        avatarUrl: data.avatarUrl ?? null,
-        bannerUrl: data.bannerUrl ?? null,
-        topEntryIds: topEntryIds ?? [],
-      })
-      .onConflictDoUpdate({
-        target: profilesTable.id,
-        set: {
-          ...(data.displayName !== undefined ? { displayName: data.displayName } : {}),
-          ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
-          ...(data.bannerUrl !== undefined ? { bannerUrl: data.bannerUrl } : {}),
-          ...(topEntryIds !== undefined ? { topEntryIds } : {}),
-        },
-      })
-      .returning();
+    await ensureProfile(userId);
+    const updates: {
+      username?: string;
+      displayName?: string;
+      realName?: string | null;
+      bio?: string | null;
+      interests?: string[];
+      onboardingCompleted?: boolean;
+      avatarUrl?: string | null;
+      bannerUrl?: string | null;
+      topEntryIds?: string[];
+    } = {
+      ...(data.username !== undefined ? { username: data.username } : {}),
+      ...(data.displayName !== undefined ? { displayName: data.displayName } : {}),
+      ...(data.realName !== undefined ? { realName: data.realName } : {}),
+      ...(data.bio !== undefined ? { bio: data.bio } : {}),
+      ...(data.interests !== undefined ? { interests: data.interests } : {}),
+      ...(data.onboardingCompleted !== undefined
+        ? { onboardingCompleted: data.onboardingCompleted }
+        : {}),
+      ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+      ...(data.bannerUrl !== undefined ? { bannerUrl: data.bannerUrl } : {}),
+      ...(topEntryIds !== undefined ? { topEntryIds } : {}),
+    };
+
+    let profile;
+    try {
+      if (Object.keys(updates).length) {
+        [profile] = await db
+          .update(profilesTable)
+          .set(updates)
+          .where(eq(profilesTable.id, userId))
+          .returning();
+      } else {
+        profile = await ensureProfile(userId);
+      }
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        res.status(409).json({ error: "Username is already taken" });
+        return;
+      }
+      throw error;
+    }
+    if (!profile) {
+      res.status(404).json({ error: "Profile not found" });
+      return;
+    }
 
     const entries = entryRows.map(({ entry, video }) => entryJson(entry, video));
     const entriesById = new Map(entries.map((entry) => [entry.id, entry]));
@@ -898,10 +1048,17 @@ router.patch("/profile", async (req, res): Promise<void> => {
 
     res.json(
       UpdateProfileResponse.parse({
+        id: profile.id,
         username: profile.username,
         displayName: profile.displayName,
+        realName: profile.realName,
+        bio: profile.bio,
+        interests: profile.interests,
+        onboardingCompleted: profile.onboardingCompleted,
         avatarUrl: profile.avatarUrl,
         bannerUrl: profile.bannerUrl,
+        topEntryIds: profile.topEntryIds,
+        createdAt: profile.createdAt.toISOString(),
         topEntries: profile.topEntryIds
           .map((id) => entriesById.get(id))
           .filter((entry) => entry !== undefined),
@@ -922,6 +1079,10 @@ router.patch("/profile", async (req, res): Promise<void> => {
   } catch (error) {
     if (unauthorizedResponse(error)) {
       res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (isUniqueConstraintError(error)) {
+      res.status(409).json({ error: "Username is already taken" });
       return;
     }
     throw error;

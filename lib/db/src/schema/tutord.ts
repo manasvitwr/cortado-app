@@ -1,4 +1,5 @@
 import {
+  boolean,
   date,
   integer,
   pgTable,
@@ -14,6 +15,10 @@ export const profilesTable = pgTable("profiles", {
   id: text("id").primaryKey(),
   username: text("username").notNull().unique(),
   displayName: text("display_name").notNull(),
+  realName: text("real_name"),
+  bio: text("bio"),
+  interests: text("interests").array().notNull().default([]),
+  onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
   avatarUrl: text("avatar_url"),
   bannerUrl: text("banner_url"),
   topEntryIds: text("top_entry_ids").array().notNull().default([]),
