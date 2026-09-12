@@ -1,6 +1,6 @@
-# [Project name]
+# Tutord
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A mobile-first learning library for saving, reviewing, and organizing YouTube tutorials.
 
 ## Run & Operate
 
@@ -10,6 +10,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Optional env: `YOUTUBE_API_KEY` — richer video metadata and first-25 playlist imports
 
 ## Stack
 
@@ -22,15 +23,20 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/tutord` — React web app and branded Clerk screens
+- `artifacts/api-server/src/routes/tutord.ts` — authenticated product API
+- `lib/api-spec/openapi.yaml` — API contract and generated hook source
+- `lib/db/src/schema/tutord.ts` — PostgreSQL schema
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Replit-managed Clerk and PostgreSQL replace the prompt's Supabase dependency so auth, data, rollback, and publishing use the platform's supported production path.
+- Video metadata uses oEmbed by default; playlist expansion and richer metadata activate only when `YOUTUBE_API_KEY` exists.
+- YouTube media is never downloaded or processed locally.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Users can sign in, save YouTube videos with captions, notes, summaries, ratings and watch status, import or create lists, and browse dashboard, detail, discovery, and profile views.
 
 ## User preferences
 
@@ -38,7 +44,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Run API codegen after every change to `lib/api-spec/openapi.yaml`.
+- Playlist URLs work without an API key, but only as list shells.
 
 ## Pointers
 
