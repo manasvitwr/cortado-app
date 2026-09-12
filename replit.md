@@ -33,6 +33,8 @@ A mobile-first learning library for saving, reviewing, and organizing YouTube tu
 - Replit-managed Clerk and PostgreSQL replace the prompt's Supabase dependency so auth, data, rollback, and publishing use the platform's supported production path.
 - Video metadata uses oEmbed by default; playlist expansion and richer metadata activate only when `YOUTUBE_API_KEY` exists.
 - YouTube media is never downloaded or processed locally.
+- The Figma reference at file `mv4ECLnlB7qLFk87gOIoPB`, node `9:51`, is the visual source: deep violet surfaces, peach accents, compact mobile layout, circular media, stacked lists, and bottom navigation.
+- Profile art is user-owned in App Storage; only validated image uploads are published for display.
 
 ## Product
 

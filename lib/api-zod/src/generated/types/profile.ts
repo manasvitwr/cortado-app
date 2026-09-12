@@ -14,7 +14,12 @@ export interface Profile {
   displayName: string;
   /** @nullable */
   avatarUrl: string | null;
+  /** @nullable */
+  bannerUrl: string | null;
+  /** @maxItems 4 */
+  topEntries: Entry[];
   stats: ProfileStats;
   recentEntries: Entry[];
+  libraryEntries: Entry[];
   publicPlaylists: Playlist[];
 }

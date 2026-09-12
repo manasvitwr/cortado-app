@@ -14,6 +14,8 @@ organizing YouTube tutorials and playlists.
 - YouTube playlist shells without an API key
 - Import of the first 25 playlist videos when `YOUTUBE_API_KEY` is available
 - Dashboard, discovery, tutorial detail, list detail, and profile views
+- User-uploaded profile banners and avatars through App Storage
+- A persistent, user-selected Top 4 tutorial showcase
 
 ## Run locally on Replit
 
@@ -31,8 +33,8 @@ pnpm --filter @workspace/db run push
 
 ## Configuration
 
-Clerk authentication and PostgreSQL are managed by Replit. The only optional
-configuration is:
+Clerk authentication, PostgreSQL, and App Storage are managed by Replit. The
+only optional configuration is:
 
 - `YOUTUBE_API_KEY` — enables descriptions, durations, and full playlist imports.
 

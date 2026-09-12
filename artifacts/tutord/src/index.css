@@ -43,39 +43,39 @@
 }
 
 :root, .dark {
-  /* Dark Navy Purple */
-  --background: 260 40% 6%;
-  --foreground: 260 20% 90%;
+  /* Deep Violet / Navy surfaces */
+  --background: 245 45% 8%; 
+  --foreground: 0 0% 100%;
   
-  --border: 260 30% 16%;
-  --input: 260 30% 16%;
-  --ring: 346 100% 77%; /* Peach/Pink ring */
+  --border: 245 35% 15%;
+  --input: 245 35% 15%;
+  --ring: 15 80% 70%; /* Dusty Peach */
 
-  --card: 260 30% 10%;
-  --card-foreground: 260 20% 90%;
-  --card-border: 260 30% 16%;
+  --card: 245 40% 12%; 
+  --card-foreground: 0 0% 100%;
+  --card-border: 245 35% 16%;
 
-  --popover: 260 30% 10%;
-  --popover-foreground: 260 20% 90%;
-  --popover-border: 260 30% 16%;
+  --popover: 245 40% 12%;
+  --popover-foreground: 0 0% 100%;
+  --popover-border: 245 35% 16%;
 
-  --primary: 346 100% 77%; /* Peach/Pink Accent */
-  --primary-foreground: 346 100% 15%;
+  --primary: 15 80% 70%; /* Dusty Peach */
+  --primary-foreground: 15 85% 15%;
 
-  --secondary: 260 30% 15%;
-  --secondary-foreground: 260 20% 90%;
+  --secondary: 245 35% 18%;
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 260 30% 15%;
-  --muted-foreground: 260 20% 65%;
+  --muted: 245 30% 20%;
+  --muted-foreground: 245 20% 70%;
 
-  --accent: 346 100% 77%;
-  --accent-foreground: 346 100% 15%;
+  --accent: 15 80% 70%;
+  --accent-foreground: 15 85% 15%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
 
   --app-font-sans: 'Outfit', sans-serif;
-  --radius: 1.25rem; /* Soft rounded */
+  --radius: 1.5rem;
 }
 
 @layer base {
@@ -91,7 +91,7 @@
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-image: linear-gradient(to right, hsl(var(--primary)), hsl(300, 100%, 75%));
+  background-image: linear-gradient(to right, hsl(var(--primary)), hsl(330, 80%, 75%));
 }
 
 .line-clamp-2 {
@@ -103,8 +103,20 @@
 
 .stacked-cards-shadow {
   box-shadow: 
-    0 -8px 0 -4px hsl(260 30% 16%),
-    0 -16px 0 -8px hsl(260 30% 20%);
+    0 -6px 0 -3px hsl(var(--card)),
+    0 -6px 0 -2px hsl(var(--border)),
+    0 -12px 0 -6px hsl(var(--card)),
+    0 -12px 0 -5px hsl(var(--border));
+}
+
+@layer utilities {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 [data-state="active"] {

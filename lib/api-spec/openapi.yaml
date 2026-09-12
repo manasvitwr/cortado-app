@@ -291,6 +291,59 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Profile"
+    patch:
+      operationId: updateProfile
+      tags: [profile]
+      summary: Update profile art and featured tutorials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+  /storage/uploads/request-url:
+    post:
+      tags: [profile]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for an image upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+  /storage/objects/{objectPath}:
+    get:
+      tags: [profile]
+      operationId: getStorageObject
+      summary: Serve an uploaded profile image
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Object content
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
 components:
   parameters:
     EntryId:
@@ -434,19 +487,56 @@ components:
         videoId: { type: string }
     Profile:
       type: object
-      required: [username, displayName, avatarUrl, stats, recentEntries, publicPlaylists]
+      required: [username, displayName, avatarUrl, bannerUrl, topEntries, stats, recentEntries, libraryEntries, publicPlaylists]
       properties:
         username: { type: string }
         displayName: { type: string }
         avatarUrl: { type: ["string", "null"] }
+        bannerUrl: { type: ["string", "null"] }
+        topEntries:
+          type: array
+          maxItems: 4
+          items: { $ref: "#/components/schemas/Entry" }
         stats:
           $ref: "#/components/schemas/ProfileStats"
         recentEntries:
           type: array
           items: { $ref: "#/components/schemas/Entry" }
+        libraryEntries:
+          type: array
+          items: { $ref: "#/components/schemas/Entry" }
         publicPlaylists:
           type: array
           items: { $ref: "#/components/schemas/Playlist" }
+    ProfileUpdate:
+      type: object
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 80 }
+        avatarUrl: { type: ["string", "null"] }
+        bannerUrl: { type: ["string", "null"] }
+        topEntryIds:
+          type: array
+          maxItems: 4
+          uniqueItems: true
+          items: { type: string }
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1 }
+        size: { type: integer, minimum: 1, maximum: 10485760 }
+        contentType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp, image/gif]
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath:
+          type: string
+          description: Relative object identifier accepted by getStorageObject
+        metadata: { $ref: "#/components/schemas/UploadUrlRequest" }
     ProfileStats:
       type: object
       required: [videosSaved, videosWatched, playlistsCreated]

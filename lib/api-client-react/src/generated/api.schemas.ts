@@ -214,9 +214,56 @@ export interface Profile {
   displayName: string;
   /** @nullable */
   avatarUrl: string | null;
+  /** @nullable */
+  bannerUrl: string | null;
+  /** @maxItems 4 */
+  topEntries: Entry[];
   stats: ProfileStats;
   recentEntries: Entry[];
+  libraryEntries: Entry[];
   publicPlaylists: Playlist[];
+}
+
+export interface ProfileUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  displayName?: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  bannerUrl?: string | null;
+  /** @maxItems 4 */
+  topEntryIds?: string[];
+}
+
+export type UploadUrlRequestContentType = typeof UploadUrlRequestContentType[keyof typeof UploadUrlRequestContentType];
+
+
+export const UploadUrlRequestContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+  'image/gif': 'image/gif',
+} as const;
+
+export interface UploadUrlRequest {
+  /** @minLength 1 */
+  name: string;
+  /**
+     * @minimum 1
+     * @maximum 10485760
+     */
+  size: number;
+  contentType: UploadUrlRequestContentType;
+}
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  /** Relative object identifier accepted by getStorageObject */
+  objectPath: string;
+  metadata?: UploadUrlRequest;
 }
 
 export interface Dashboard {

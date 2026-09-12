@@ -32,4 +32,8 @@ export * from './playlistVideoInput';
 export * from './playlistVisibility';
 export * from './profile';
 export * from './profileStats';
+export * from './profileUpdate';
+export * from './uploadUrlRequest';
+export * from './uploadUrlRequestContentType';
+export * from './uploadUrlResponse';
 export * from './video';

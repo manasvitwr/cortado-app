@@ -29,6 +29,8 @@ import {
   UpdatePlaylistBody,
   UpdatePlaylistParams,
   UpdatePlaylistResponse,
+  UpdateProfileBody,
+  UpdateProfileResponse,
 } from "@workspace/api-zod";
 import {
   db,
@@ -48,8 +50,47 @@ import {
   isYouTubePlaylist,
   type YouTubeVideoMetadata,
 } from "../lib/youtube";
+import { ObjectStorageService } from "../lib/objectStorage";
 
 const router: IRouter = Router();
+const objectStorageService = new ObjectStorageService();
+const allowedProfileImageTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+async function validateAndPublishProfileImage(
+  value: string | null | undefined,
+  userId: string,
+): Promise<void> {
+  if (value == null) return;
+  const prefix = "/api/storage/objects/";
+  if (!value.startsWith(prefix)) {
+    throw new Error("INVALID_PROFILE_IMAGE");
+  }
+  const objectPath = `/objects/${value.slice(prefix.length)}`;
+  if (!objectStorageService.isObjectOwnedBy(objectPath, userId)) {
+    throw new Error("INVALID_PROFILE_IMAGE");
+  }
+  const file = await objectStorageService.getObjectEntityFile(objectPath);
+  const [metadata] = await file.getMetadata();
+  const size = Number(metadata.size ?? 0);
+  const contentType = String(metadata.contentType ?? "");
+  if (
+    !allowedProfileImageTypes.has(contentType) ||
+    !Number.isFinite(size) ||
+    size < 1 ||
+    size > 10 * 1024 * 1024
+  ) {
+    throw new Error("INVALID_PROFILE_IMAGE");
+  }
+  await objectStorageService.trySetObjectEntityAclPolicy(objectPath, {
+    owner: userId,
+    visibility: "public",
+  });
+}
 
 function currentUserId(req: Request): string | null {
   const auth = getAuth(req);
@@ -765,11 +806,16 @@ router.get("/profile", async (req, res): Promise<void> => {
       }
     }
     const entries = entryRows.map(({ entry, video }) => entryJson(entry, video));
+    const entriesById = new Map(entries.map((entry) => [entry.id, entry]));
     res.json(
       GetProfileResponse.parse({
         username: profile.username,
         displayName: profile.displayName,
         avatarUrl: profile.avatarUrl,
+        bannerUrl: profile.bannerUrl,
+        topEntries: profile.topEntryIds
+          .map((id) => entriesById.get(id))
+          .filter((entry) => entry !== undefined),
         stats: {
           videosSaved: entries.length,
           videosWatched: entries.filter((entry) => entry.status === "watched")
@@ -777,6 +823,95 @@ router.get("/profile", async (req, res): Promise<void> => {
           playlistsCreated: playlists.length,
         },
         recentEntries: entries.slice(0, 8),
+        libraryEntries: entries,
+        publicPlaylists: await Promise.all(
+          playlists
+            .filter((playlist) => playlist.visibility === "public")
+            .map(playlistJson),
+        ),
+      }),
+    );
+  } catch (error) {
+    if (unauthorizedResponse(error)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.patch("/profile", async (req, res): Promise<void> => {
+  try {
+    const userId = requireUserId(req);
+    const data = UpdateProfileBody.parse(req.body);
+    const entryRows = await getEntryRows(userId);
+    const ownedEntryIds = new Set(entryRows.map(({ entry }) => entry.id));
+    const topEntryIds = data.topEntryIds ?? undefined;
+
+    if (
+      topEntryIds &&
+      (new Set(topEntryIds).size !== topEntryIds.length ||
+        topEntryIds.some((id) => !ownedEntryIds.has(id)))
+    ) {
+      res.status(400).json({ error: "Top tutorials must come from your saved library" });
+      return;
+    }
+    try {
+      await Promise.all([
+        validateAndPublishProfileImage(data.avatarUrl, userId),
+        validateAndPublishProfileImage(data.bannerUrl, userId),
+      ]);
+    } catch {
+      res.status(400).json({ error: "Profile images must be valid uploads owned by you" });
+      return;
+    }
+
+    const shortId = userId.replace(/[^a-zA-Z0-9]/g, "").slice(-8);
+    const [profile] = await db
+      .insert(profilesTable)
+      .values({
+        id: userId,
+        username: `learner_${shortId}`,
+        displayName: data.displayName ?? "Tutord learner",
+        avatarUrl: data.avatarUrl ?? null,
+        bannerUrl: data.bannerUrl ?? null,
+        topEntryIds: topEntryIds ?? [],
+      })
+      .onConflictDoUpdate({
+        target: profilesTable.id,
+        set: {
+          ...(data.displayName !== undefined ? { displayName: data.displayName } : {}),
+          ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+          ...(data.bannerUrl !== undefined ? { bannerUrl: data.bannerUrl } : {}),
+          ...(topEntryIds !== undefined ? { topEntryIds } : {}),
+        },
+      })
+      .returning();
+
+    const entries = entryRows.map(({ entry, video }) => entryJson(entry, video));
+    const entriesById = new Map(entries.map((entry) => [entry.id, entry]));
+    const playlists = await db
+      .select()
+      .from(playlistsTable)
+      .where(eq(playlistsTable.ownerId, userId))
+      .orderBy(desc(playlistsTable.createdAt));
+
+    res.json(
+      UpdateProfileResponse.parse({
+        username: profile.username,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        bannerUrl: profile.bannerUrl,
+        topEntries: profile.topEntryIds
+          .map((id) => entriesById.get(id))
+          .filter((entry) => entry !== undefined),
+        stats: {
+          videosSaved: entries.length,
+          videosWatched: entries.filter((entry) => entry.status === "watched").length,
+          playlistsCreated: playlists.length,
+        },
+        recentEntries: entries.slice(0, 8),
+        libraryEntries: entries,
         publicPlaylists: await Promise.all(
           playlists
             .filter((playlist) => playlist.visibility === "public")

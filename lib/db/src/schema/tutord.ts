@@ -15,6 +15,8 @@ export const profilesTable = pgTable("profiles", {
   username: text("username").notNull().unique(),
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),
+  bannerUrl: text("banner_url"),
+  topEntryIds: text("top_entry_ids").array().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

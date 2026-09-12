@@ -2,7 +2,7 @@ import { Layout } from "@/components/layout";
 import { VideoCard, VideoCardSkeleton } from "@/components/video-card";
 import { ListCard, ListCardSkeleton } from "@/components/list-card";
 import { useGetDashboard } from "@workspace/api-client-react";
-import { Button } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ChevronRight } from "lucide-react";
 
@@ -25,25 +25,27 @@ export default function Home() {
           </section>
         </div>
       ) : error || !data ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-card rounded-2xl border border-border">
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-card rounded-[2rem] border border-border shadow-xl">
           <p className="text-destructive font-medium mb-2">Could not load dashboard</p>
           <p className="text-sm text-muted-foreground">Please try refreshing the page.</p>
         </div>
       ) : (
         <div className="space-y-10 animate-in fade-in duration-500">
-          <header>
+          <header className="px-1">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">{data.greeting}</h1>
-            <p className="text-muted-foreground mt-1">Ready to learn something new today?</p>
+            <p className="text-muted-foreground mt-1 font-medium">Ready to learn something new today?</p>
           </header>
 
           {data.watchlist.length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Continue Watching</h2>
+              <div className="flex items-center justify-between mb-4 px-1">
+                <h2 className="text-xl font-bold tracking-tight">Continue Watching</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {data.watchlist.slice(0, 3).map(entry => (
-                  <VideoCard key={entry.id} entry={entry} />
+              <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-3">
+                {data.watchlist.slice(0, 4).map(entry => (
+                  <div className="w-[260px] shrink-0 snap-center sm:w-auto" key={entry.id}>
+                    <VideoCard entry={entry} />
+                  </div>
                 ))}
               </div>
             </section>
@@ -51,25 +53,27 @@ export default function Home() {
 
           {data.recentlyAdded.length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Recently Added</h2>
-                <Link href="/profile" className="text-sm text-primary hover:underline flex items-center">
+              <div className="flex items-center justify-between mb-4 px-1">
+                <h2 className="text-xl font-bold tracking-tight">Recently Added</h2>
+                <Link href="/profile" className="text-sm text-primary hover:underline flex items-center font-semibold">
                   See all <ChevronRight className="w-4 h-4 ml-0.5" />
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {data.recentlyAdded.slice(0, 3).map(entry => (
-                  <VideoCard key={entry.id} entry={entry} />
+              <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-3">
+                {data.recentlyAdded.slice(0, 4).map(entry => (
+                  <div className="w-[260px] shrink-0 snap-center sm:w-auto" key={entry.id}>
+                    <VideoCard entry={entry} />
+                  </div>
                 ))}
               </div>
             </section>
           )}
 
           {(data.popularThisMonth.length > 0 || data.popularLists.length > 0) && (
-            <div className="pt-6 border-t border-border/50">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Trending This Month</h2>
-                <Link href="/explore" className="text-sm text-primary hover:underline flex items-center">
+            <div className="pt-8 border-t border-border/50">
+              <div className="flex items-center justify-between mb-6 px-1">
+                <h2 className="text-xl font-bold tracking-tight">Trending This Month</h2>
+                <Link href="/explore" className="text-sm text-primary hover:underline flex items-center font-semibold">
                   Explore <ChevronRight className="w-4 h-4 ml-0.5" />
                 </Link>
               </div>
@@ -93,16 +97,16 @@ export default function Home() {
           )}
 
           {data.watchlist.length === 0 && data.recentlyAdded.length === 0 && (
-            <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-2xl border border-border border-dashed">
+            <div className="flex flex-col items-center justify-center text-center p-12 bg-card rounded-[2rem] border border-border border-dashed shadow-sm mt-8">
               <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4">
                 <img src="/logo.svg" className="w-8 h-8 opacity-50 grayscale" alt="" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Your library is empty</h3>
-              <p className="text-muted-foreground text-sm max-w-md mb-6">
+              <h3 className="text-lg font-bold mb-2 tracking-tight">Your library is empty</h3>
+              <p className="text-muted-foreground text-sm max-w-md mb-6 font-medium">
                 Start building your personal learning library by saving a YouTube tutorial or playlist.
               </p>
               <Link href="/add">
-                <Button>Save a Video</Button>
+                <Button className="rounded-xl font-semibold">Save a Video</Button>
               </Link>
             </div>
           )}

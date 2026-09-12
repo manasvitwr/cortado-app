@@ -580,7 +580,13 @@ export const RemoveVideoFromPlaylistResponse = zod.void()
 /**
  * @summary Get the user's profile and stats
  */
+export const getProfileResponseTopEntriesItemRatingMax = 5;
+
+export const getProfileResponseTopEntriesMax = 4;
+
 export const getProfileResponseRecentEntriesItemRatingMax = 5;
+
+export const getProfileResponseLibraryEntriesItemRatingMax = 5;
 
 
 
@@ -588,6 +594,29 @@ export const GetProfileResponse = zod.object({
   "username": zod.string(),
   "displayName": zod.string(),
   "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "topEntries": zod.array(zod.object({
+  "id": zod.string(),
+  "video": zod.object({
+  "id": zod.string(),
+  "youtubeId": zod.string(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string(),
+  "channelName": zod.string(),
+  "description": zod.string().nullish(),
+  "duration": zod.string().nullish(),
+  "originalUrl": zod.string()
+}),
+  "caption": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().int().min(1).max(getProfileResponseTopEntriesItemRatingMax).nullish(),
+  "status": zod.enum(['watchlist', 'watching', 'watched']),
+  "visibility": zod.enum(['private', 'public']),
+  "watchedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})).max(getProfileResponseTopEntriesMax),
   "stats": zod.object({
   "videosSaved": zod.number().int(),
   "videosWatched": zod.number().int(),
@@ -609,6 +638,28 @@ export const GetProfileResponse = zod.object({
   "summary": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "rating": zod.number().int().min(1).max(getProfileResponseRecentEntriesItemRatingMax).nullish(),
+  "status": zod.enum(['watchlist', 'watching', 'watched']),
+  "visibility": zod.enum(['private', 'public']),
+  "watchedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})),
+  "libraryEntries": zod.array(zod.object({
+  "id": zod.string(),
+  "video": zod.object({
+  "id": zod.string(),
+  "youtubeId": zod.string(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string(),
+  "channelName": zod.string(),
+  "description": zod.string().nullish(),
+  "duration": zod.string().nullish(),
+  "originalUrl": zod.string()
+}),
+  "caption": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().int().min(1).max(getProfileResponseLibraryEntriesItemRatingMax).nullish(),
   "status": zod.enum(['watchlist', 'watching', 'watched']),
   "visibility": zod.enum(['private', 'public']),
   "watchedAt": zod.coerce.date().nullish(),
@@ -638,5 +689,172 @@ export const GetProfileResponse = zod.object({
   "createdAt": zod.coerce.date()
 }))
 })
+
+
+/**
+ * @summary Update profile art and featured tutorials
+ */
+export const updateProfileBodyDisplayNameMax = 80;
+
+export const updateProfileBodyTopEntryIdsMax = 4;
+
+
+
+export const UpdateProfileBody = zod.object({
+  "displayName": zod.string().min(1).max(updateProfileBodyDisplayNameMax).optional(),
+  "avatarUrl": zod.string().nullish(),
+  "bannerUrl": zod.string().nullish(),
+  "topEntryIds": zod.array(zod.string()).max(updateProfileBodyTopEntryIdsMax).optional()
+})
+
+export const updateProfileResponseTopEntriesItemRatingMax = 5;
+
+export const updateProfileResponseTopEntriesMax = 4;
+
+export const updateProfileResponseRecentEntriesItemRatingMax = 5;
+
+export const updateProfileResponseLibraryEntriesItemRatingMax = 5;
+
+
+
+export const UpdateProfileResponse = zod.object({
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullable(),
+  "bannerUrl": zod.string().nullable(),
+  "topEntries": zod.array(zod.object({
+  "id": zod.string(),
+  "video": zod.object({
+  "id": zod.string(),
+  "youtubeId": zod.string(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string(),
+  "channelName": zod.string(),
+  "description": zod.string().nullish(),
+  "duration": zod.string().nullish(),
+  "originalUrl": zod.string()
+}),
+  "caption": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().int().min(1).max(updateProfileResponseTopEntriesItemRatingMax).nullish(),
+  "status": zod.enum(['watchlist', 'watching', 'watched']),
+  "visibility": zod.enum(['private', 'public']),
+  "watchedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})).max(updateProfileResponseTopEntriesMax),
+  "stats": zod.object({
+  "videosSaved": zod.number().int(),
+  "videosWatched": zod.number().int(),
+  "playlistsCreated": zod.number().int()
+}),
+  "recentEntries": zod.array(zod.object({
+  "id": zod.string(),
+  "video": zod.object({
+  "id": zod.string(),
+  "youtubeId": zod.string(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string(),
+  "channelName": zod.string(),
+  "description": zod.string().nullish(),
+  "duration": zod.string().nullish(),
+  "originalUrl": zod.string()
+}),
+  "caption": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().int().min(1).max(updateProfileResponseRecentEntriesItemRatingMax).nullish(),
+  "status": zod.enum(['watchlist', 'watching', 'watched']),
+  "visibility": zod.enum(['private', 'public']),
+  "watchedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})),
+  "libraryEntries": zod.array(zod.object({
+  "id": zod.string(),
+  "video": zod.object({
+  "id": zod.string(),
+  "youtubeId": zod.string(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string(),
+  "channelName": zod.string(),
+  "description": zod.string().nullish(),
+  "duration": zod.string().nullish(),
+  "originalUrl": zod.string()
+}),
+  "caption": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().int().min(1).max(updateProfileResponseLibraryEntriesItemRatingMax).nullish(),
+  "status": zod.enum(['watchlist', 'watching', 'watched']),
+  "visibility": zod.enum(['private', 'public']),
+  "watchedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})),
+  "publicPlaylists": zod.array(zod.object({
+  "id": zod.string(),
+  "youtubePlaylistId": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "thumbnailUrl": zod.string().nullish(),
+  "originalUrl": zod.string().nullish(),
+  "visibility": zod.enum(['private', 'public']),
+  "source": zod.enum(['custom', 'youtube']),
+  "videoCount": zod.number().int(),
+  "videos": zod.array(zod.object({
+  "id": zod.string(),
+  "youtubeId": zod.string(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string(),
+  "channelName": zod.string(),
+  "description": zod.string().nullish(),
+  "duration": zod.string().nullish(),
+  "originalUrl": zod.string()
+})),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Request a presigned URL for an image upload
+ */
+
+export const requestUploadUrlBodySizeMax = 10485760;
+
+
+
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().int().min(1).max(requestUploadUrlBodySizeMax),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+})
+
+
+export const requestUploadUrlResponseMetadataSizeMax = 10485760;
+
+
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectPath": zod.string().describe('Relative object identifier accepted by getStorageObject'),
+  "metadata": zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().int().min(1).max(requestUploadUrlResponseMetadataSizeMax),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+}).optional()
+})
+
+
+/**
+ * @summary Serve an uploaded profile image
+ */
+export const GetStorageObjectParams = zod.object({
+  "objectPath": zod.coerce.string()
+})
+
+export const GetStorageObjectResponse = zod.unknown()
 
 
