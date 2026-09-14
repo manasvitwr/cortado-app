@@ -1,0 +1,1 @@
+- [Published data compatibility](published-data-compatibility.md) — Keep response validation tolerant of legacy stored records while retaining strict validation for new user edits.
