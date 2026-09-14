@@ -474,6 +474,7 @@ export default function Profile() {
               <div className="space-y-2">
                 <label className="text-sm font-bold">Bio</label>
                 <Textarea 
+                  aria-label="Bio"
                   value={editBio} 
                   onChange={e => setEditBio(e.target.value)} 
                   maxLength={120}

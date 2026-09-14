@@ -1,1 +1,2 @@
 - [Published data compatibility](published-data-compatibility.md) — Keep response validation tolerant of legacy stored records while retaining strict validation for new user edits.
+- [Clerk browser smoke tests](clerk-browser-smoke.md) — Authenticated browser coverage needs an explicit Clerk session artifact; API mocks alone do not establish a session.
