@@ -122,7 +122,8 @@ export const GetDashboardResponse = zod.object({
 
 
 /**
- * @summary Get public tutorial discovery data
+ * Ranks public Cortado entries by public saves, recency, ratings, and profile signals. Private entries are never returned.
+ * @summary Get personalized public tutorial discovery data
  */
 export const getTrendingResponseFeaturedItemRatingMax = 5;
 
@@ -172,7 +173,20 @@ export const GetTrendingResponse = zod.object({
   "originalUrl": zod.string()
 })),
   "createdAt": zod.coerce.date()
-}))
+})),
+  "editorialVideos": zod.array(zod.object({
+  "id": zod.string(),
+  "youtubeId": zod.string(),
+  "title": zod.string(),
+  "thumbnailUrl": zod.string(),
+  "channelName": zod.string(),
+  "description": zod.string().nullish(),
+  "duration": zod.string().nullish(),
+  "originalUrl": zod.string()
+})).describe('Verified YouTube tutorials used only when Cortado has not accumulated enough public activity.'),
+  "isPersonalized": zod.boolean().describe('Whether profile interests or saved tutorials influenced the ordering.'),
+  "trendingBasis": zod.string().describe('Honest explanation of the Cortado-only trending signal.'),
+  "listsBasis": zod.string().describe('Honest explanation of curated-list personalization.')
 })
 
 
@@ -580,11 +594,6 @@ export const RemoveVideoFromPlaylistResponse = zod.void()
 /**
  * @summary Get the user's profile and stats
  */
-export const getProfileResponseUsernameMin = 3;
-export const getProfileResponseUsernameMax = 24;
-
-
-export const getProfileResponseUsernameRegExp = new RegExp('^[a-z][a-z0-9_]{2,23}$');
 export const getProfileResponseTopEntryIdsMax = 4;
 
 export const getProfileResponseTopEntriesItemRatingMax = 5;
@@ -599,7 +608,7 @@ export const getProfileResponseLibraryEntriesItemRatingMax = 5;
 
 export const GetProfileResponse = zod.object({
   "id": zod.string(),
-  "username": zod.string().min(getProfileResponseUsernameMin).max(getProfileResponseUsernameMax).regex(getProfileResponseUsernameRegExp),
+  "username": zod.string().describe('Stored username, including legacy formats. New username edits follow ProfileInput validation.'),
   "displayName": zod.string(),
   "realName": zod.string().nullable(),
   "bio": zod.string().nullable(),
@@ -737,11 +746,6 @@ export const UpdateProfileBody = zod.object({
   "topEntryIds": zod.array(zod.string()).max(updateProfileBodyTopEntryIdsMax).optional()
 })
 
-export const updateProfileResponseUsernameMin = 3;
-export const updateProfileResponseUsernameMax = 24;
-
-
-export const updateProfileResponseUsernameRegExp = new RegExp('^[a-z][a-z0-9_]{2,23}$');
 export const updateProfileResponseTopEntryIdsMax = 4;
 
 export const updateProfileResponseTopEntriesItemRatingMax = 5;
@@ -756,7 +760,7 @@ export const updateProfileResponseLibraryEntriesItemRatingMax = 5;
 
 export const UpdateProfileResponse = zod.object({
   "id": zod.string(),
-  "username": zod.string().min(updateProfileResponseUsernameMin).max(updateProfileResponseUsernameMax).regex(updateProfileResponseUsernameRegExp),
+  "username": zod.string().describe('Stored username, including legacy formats. New username edits follow ProfileInput validation.'),
   "displayName": zod.string(),
   "realName": zod.string().nullable(),
   "bio": zod.string().nullable(),

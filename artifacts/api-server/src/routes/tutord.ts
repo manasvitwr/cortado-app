@@ -47,10 +47,17 @@ import { and, asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import {
   getYouTubePlaylistMetadata,
   getYouTubeVideoMetadata,
+  getYouTubeVideoOEmbedMetadata,
   isYouTubePlaylist,
   type YouTubeVideoMetadata,
 } from "../lib/youtube";
 import { ObjectStorageService } from "../lib/objectStorage";
+import {
+  rankCuratedPlaylists,
+  rankEditorialVideos,
+  rankTrendingEntries,
+  type DiscoverySignals,
+} from "../lib/discoveryRanking";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -86,6 +93,15 @@ const defaultUsernameNouns = [
   "tiger",
   "whale",
   "wren",
+];
+
+// These are editorial starting points, not community or YouTube-wide
+// popularity claims. They are returned only after a live oEmbed/API lookup
+// succeeds, so stale or fabricated metadata is never shown to learners.
+const editorialTutorialUrls = [
+  "https://www.youtube.com/watch?v=Ke90Tje7VS0",
+  "https://www.youtube.com/watch?v=rfscVS0vtbw",
+  "https://www.youtube.com/watch?v=PkZNo7MFNFg",
 ];
 
 async function validateAndPublishProfileImage(
@@ -244,6 +260,31 @@ function videoJson(video: VideoRecord) {
   };
 }
 
+async function verifiedEditorialVideos() {
+  const results = await Promise.allSettled(
+    editorialTutorialUrls.map((url) => getYouTubeVideoOEmbedMetadata(url)),
+  );
+
+  return results.flatMap((result) => {
+    if (result.status !== "fulfilled") return [];
+    const metadata = result.value;
+    return [
+      {
+        // Editorial videos are not community entries. The YouTube id is a
+        // stable external identifier and is never persisted as a user save.
+        id: metadata.youtubeId,
+        youtubeId: metadata.youtubeId,
+        title: metadata.title,
+        thumbnailUrl: metadata.thumbnailUrl,
+        channelName: metadata.channelName,
+        description: metadata.description,
+        duration: metadata.duration,
+        originalUrl: metadata.originalUrl,
+      },
+    ];
+  });
+}
+
 function entryJson(entry: EntryRecord, video: VideoRecord) {
   return {
     id: entry.id,
@@ -321,7 +362,7 @@ function unauthorizedResponse(error: unknown): error is Error {
 router.get("/dashboard", async (req, res): Promise<void> => {
   try {
     const userId = requireUserId(req);
-    const [ownRows, publicRows, publicLists] = await Promise.all([
+    const [ownRows, publicRows, publicLists, profile] = await Promise.all([
       getEntryRows(userId),
       getEntryRows(),
       db
@@ -329,18 +370,30 @@ router.get("/dashboard", async (req, res): Promise<void> => {
         .from(playlistsTable)
         .where(eq(playlistsTable.visibility, "public"))
         .orderBy(desc(playlistsTable.createdAt))
-        .limit(6),
+        .limit(24),
+      db
+        .select()
+        .from(profilesTable)
+        .where(eq(profilesTable.id, userId))
+        .limit(1),
     ]);
     const own = ownRows.map(({ entry, video }) => entryJson(entry, video));
-    const popular = publicRows
-      .filter(({ entry }) => entry.userId !== userId)
+    const signals: DiscoverySignals = {
+      interests: profile[0]?.interests ?? [],
+      savedVideos: ownRows.map(({ video }) => videoJson(video)),
+    };
+    const popular = rankTrendingEntries(publicRows, signals)
       .slice(0, 8)
       .map(({ entry, video }) => entryJson(entry, video));
-    const profile = await db
-      .select()
-      .from(profilesTable)
-      .where(eq(profilesTable.id, userId))
-      .limit(1);
+    const playlistCandidates = await Promise.all(
+      publicLists.map(async (playlist) => {
+        const json = await playlistJson(playlist);
+        return { playlist, videos: json.videos, json };
+      }),
+    );
+    const popularLists = rankCuratedPlaylists(playlistCandidates, signals)
+      .slice(0, 6)
+      .map(({ json }) => json);
     const displayName = profile[0]?.displayName ?? "learner";
 
     res.json(
@@ -348,8 +401,8 @@ router.get("/dashboard", async (req, res): Promise<void> => {
         greeting: `Hello, ${displayName}`,
         watchlist: own.filter((entry) => entry.status === "watchlist").slice(0, 8),
         recentlyAdded: own.slice(0, 8),
-        popularThisMonth: popular.length ? popular : own.slice(0, 8),
-        popularLists: await Promise.all(publicLists.map(playlistJson)),
+        popularThisMonth: popular,
+        popularLists,
       }),
     );
   } catch (error) {
@@ -361,24 +414,72 @@ router.get("/dashboard", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/explore/trending", async (_req, res): Promise<void> => {
-  const [entryRows, playlists] = await Promise.all([
-    getEntryRows(),
-    db
-      .select()
-      .from(playlistsTable)
-      .where(eq(playlistsTable.visibility, "public"))
-      .orderBy(desc(playlistsTable.createdAt))
-      .limit(12),
-  ]);
-  res.json(
-    GetTrendingResponse.parse({
-      featured: entryRows
-        .slice(0, 16)
-        .map(({ entry, video }) => entryJson(entry, video)),
-      lists: await Promise.all(playlists.map(playlistJson)),
-    }),
-  );
+router.get("/explore/trending", async (req, res): Promise<void> => {
+  try {
+    const userId = requireUserId(req);
+    const [entryRows, ownRows, playlists, profile] = await Promise.all([
+      // getEntryRows() without an id is intentionally public-only. Do not
+      // replace this with a broad videos query: private entries must never
+      // enter discovery ranking.
+      getEntryRows(),
+      getEntryRows(userId),
+      db
+        .select()
+        .from(playlistsTable)
+        .where(eq(playlistsTable.visibility, "public"))
+        .orderBy(desc(playlistsTable.createdAt))
+        .limit(24),
+      db
+        .select()
+        .from(profilesTable)
+        .where(eq(profilesTable.id, userId))
+        .limit(1),
+    ]);
+    const signals: DiscoverySignals = {
+      interests: profile[0]?.interests ?? [],
+      savedVideos: ownRows.map(({ video }) => videoJson(video)),
+    };
+    const rankedEntries = rankTrendingEntries(entryRows, signals)
+      .slice(0, 16)
+      .map(({ entry, video }) => entryJson(entry, video));
+    const playlistCandidates = await Promise.all(
+      playlists.map(async (playlist) => {
+        const json = await playlistJson(playlist);
+        return { playlist, videos: json.videos, json };
+      }),
+    );
+    const rankedLists = rankCuratedPlaylists(playlistCandidates, signals)
+      .slice(0, 12)
+      .map(({ json }) => json);
+    const editorialVideos =
+      rankedEntries.length === 0
+        ? rankEditorialVideos(await verifiedEditorialVideos(), signals)
+        : [];
+    if (rankedEntries.length === 0 && editorialVideos.length === 0) {
+      req.log.warn("No public Cortado entries or verified editorial tutorials available");
+    }
+
+    res.json(
+      GetTrendingResponse.parse({
+        featured: rankedEntries,
+        lists: rankedLists,
+        editorialVideos,
+        isPersonalized: Boolean(
+          signals.interests.length || signals.savedVideos.length,
+        ),
+        trendingBasis:
+          "Public Cortado saves, ratings, and recency — not YouTube-wide views.",
+        listsBasis:
+          "Public community lists ranked by your interests and saved tutorial topics, then recency.",
+      }),
+    );
+  } catch (error) {
+    if (unauthorizedResponse(error)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    throw error;
+  }
 });
 
 router.get("/entries", async (req, res): Promise<void> => {

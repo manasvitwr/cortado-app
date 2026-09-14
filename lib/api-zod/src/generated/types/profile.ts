@@ -11,11 +11,7 @@ import type { ProfileStats } from './profileStats';
 
 export interface Profile {
   id: string;
-  /**
-     * @minLength 3
-     * @maxLength 24
-     * @pattern ^[a-z][a-z0-9_]{2,23}$
-     */
+  /** Stored username, including legacy formats. New username edits follow ProfileInput validation. */
   username: string;
   displayName: string;
   /** @nullable */

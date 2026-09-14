@@ -230,7 +230,8 @@ export const getGetTrendingUrl = () => {
 }
 
 /**
- * @summary Get public tutorial discovery data
+ * Ranks public Cortado entries by public saves, recency, ratings, and profile signals. Private entries are never returned.
+ * @summary Get personalized public tutorial discovery data
  */
 export const getTrending = async ( options?: Parameters<typeof customFetch>[1]): Promise<ExploreData> => {
 
@@ -277,7 +278,7 @@ export type GetTrendingQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get public tutorial discovery data
+ * @summary Get personalized public tutorial discovery data
  */
 
 export function useGetTrending<TData = Awaited<ReturnType<typeof getTrending>>, TError = ErrorType<unknown>>(

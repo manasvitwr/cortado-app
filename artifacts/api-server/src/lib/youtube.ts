@@ -78,6 +78,37 @@ async function fetchJson<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+/**
+ * Fetch the public metadata endpoint without requiring a YouTube API key.
+ * Discovery uses this for editorial cold-start items so those items are
+ * verified live rather than presented from an invented local catalog.
+ */
+export async function getYouTubeVideoOEmbedMetadata(
+  input: string,
+): Promise<YouTubeVideoMetadata> {
+  const youtubeId = extractYouTubeVideoId(input);
+  if (!youtubeId) throw new Error("Paste a valid YouTube video or Shorts URL.");
+
+  const originalUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+  const oembed = await fetchJson<{
+    title: string;
+    author_name: string;
+    thumbnail_url?: string;
+  }>(
+    `https://www.youtube.com/oembed?url=${encodeURIComponent(originalUrl)}&format=json`,
+  );
+
+  return {
+    youtubeId,
+    title: oembed.title,
+    thumbnailUrl: oembed.thumbnail_url ?? getThumbnailUrl(youtubeId),
+    channelName: oembed.author_name,
+    description: null,
+    duration: null,
+    originalUrl,
+  };
+}
+
 export async function getYouTubeVideoMetadata(
   input: string,
 ): Promise<YouTubeVideoMetadata> {
@@ -118,23 +149,7 @@ export async function getYouTubeVideoMetadata(
     }
   }
 
-  const oembed = await fetchJson<{
-    title: string;
-    author_name: string;
-    thumbnail_url?: string;
-  }>(
-    `https://www.youtube.com/oembed?url=${encodeURIComponent(originalUrl)}&format=json`,
-  );
-
-  return {
-    youtubeId,
-    title: oembed.title,
-    thumbnailUrl: oembed.thumbnail_url ?? getThumbnailUrl(youtubeId),
-    channelName: oembed.author_name,
-    description: null,
-    duration: null,
-    originalUrl,
-  };
+  return getYouTubeVideoOEmbedMetadata(originalUrl);
 }
 
 export async function getYouTubePlaylistMetadata(

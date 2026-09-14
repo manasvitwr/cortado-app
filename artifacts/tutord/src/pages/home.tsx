@@ -71,35 +71,57 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Popular This Month */}
+        {/* Cortado community discovery */}
         <section className="px-2">
-          <h2 className="text-xl font-bold tracking-tight text-foreground mb-5">Popular This Month</h2>
+          <div className="flex items-end justify-between mb-5">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-foreground">Trending on Cortado</h2>
+              <p className="text-xs text-muted-foreground mt-1">Public saves, ratings, and freshness — not YouTube-wide views.</p>
+            </div>
+            <Link href="/explore"><span className="text-sm font-bold text-primary hover:underline cursor-pointer">Explore</span></Link>
+          </div>
           <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 snap-x">
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="w-[160px] sm:w-[200px] shrink-0 snap-center"><VideoCardSkeleton /></div>
               ))
-            ) : data?.popularThisMonth?.map((entry) => (
+            ) : data?.popularThisMonth && data.popularThisMonth.length > 0 ? data.popularThisMonth.map((entry) => (
               <div key={entry.id} className="w-[160px] sm:w-[200px] shrink-0 snap-center">
                 <VideoCard entry={entry} compact />
               </div>
-            ))}
+            )) : (
+              <div className="w-full rounded-2xl border border-dashed border-border p-6 text-center">
+                <p className="text-sm text-muted-foreground">No public Cortado activity yet.</p>
+                <Link href="/explore"><span className="text-sm font-bold text-primary hover:underline cursor-pointer">See editorial picks in Explore</span></Link>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Popular Lists */}
+        {/* Curated Lists */}
         <section className="px-2">
-          <h2 className="text-xl font-bold tracking-tight text-foreground mb-5">Popular Lists This Month</h2>
+          <div className="flex items-end justify-between mb-5">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-foreground">Curated Lists for You</h2>
+              <p className="text-xs text-muted-foreground mt-1">Public community lists ranked from your interests and saved topics.</p>
+            </div>
+            <Link href="/explore"><span className="text-sm font-bold text-primary hover:underline cursor-pointer">See All</span></Link>
+          </div>
           <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 snap-x">
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="w-[280px] sm:w-[320px] shrink-0 snap-center"><ListCardSkeleton /></div>
               ))
-            ) : data?.popularLists?.map((list) => (
+            ) : data?.popularLists && data.popularLists.length > 0 ? data.popularLists.map((list) => (
               <div key={list.id} className="w-[280px] sm:w-[320px] shrink-0 snap-center">
                 <ListCard playlist={list} />
               </div>
-            ))}
+            )) : (
+              <div className="w-full rounded-2xl border border-dashed border-border p-6 text-center">
+                <p className="text-sm text-muted-foreground">No public community lists yet.</p>
+                <Link href="/explore"><span className="text-sm font-bold text-primary hover:underline cursor-pointer">Browse Explore</span></Link>
+              </div>
+            )}
           </div>
         </section>
 

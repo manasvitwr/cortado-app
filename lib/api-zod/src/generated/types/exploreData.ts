@@ -7,8 +7,17 @@
  */
 import type { Entry } from './entry';
 import type { Playlist } from './playlist';
+import type { Video } from './video';
 
 export interface ExploreData {
   featured: Entry[];
   lists: Playlist[];
+  /** Verified YouTube tutorials used only when Cortado has not accumulated enough public activity. */
+  editorialVideos: Video[];
+  /** Whether profile interests or saved tutorials influenced the ordering. */
+  isPersonalized: boolean;
+  /** Honest explanation of the Cortado-only trending signal. */
+  trendingBasis: string;
+  /** Honest explanation of curated-list personalization. */
+  listsBasis: string;
 }

@@ -211,11 +211,7 @@ export interface ProfileStats {
 
 export interface Profile {
   id: string;
-  /**
-     * @minLength 3
-     * @maxLength 24
-     * @pattern ^[a-z][a-z0-9_]{2,23}$
-     */
+  /** Stored username, including legacy formats. New username edits follow ProfileInput validation. */
   username: string;
   displayName: string;
   /** @nullable */
@@ -314,6 +310,14 @@ export interface Dashboard {
 export interface ExploreData {
   featured: Entry[];
   lists: Playlist[];
+  /** Verified YouTube tutorials used only when Cortado has not accumulated enough public activity. */
+  editorialVideos: Video[];
+  /** Whether profile interests or saved tutorials influenced the ordering. */
+  isPersonalized: boolean;
+  /** Honest explanation of the Cortado-only trending signal. */
+  trendingBasis: string;
+  /** Honest explanation of curated-list personalization. */
+  listsBasis: string;
 }
 
 export type GetEntriesParams = {

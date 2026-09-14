@@ -48,7 +48,8 @@ paths:
     get:
       operationId: getTrending
       tags: [dashboard]
-      summary: Get public tutorial discovery data
+      summary: Get personalized public tutorial discovery data
+      description: Ranks public Cortado entries by public saves, recency, ratings, and profile signals. Private entries are never returned.
       responses:
         "200":
           description: Trending entries and lists
@@ -504,9 +505,7 @@ components:
         id: { type: string }
         username:
           type: string
-          minLength: 3
-          maxLength: 24
-          pattern: "^[a-z][a-z0-9_]{2,23}$"
+          description: Stored username, including legacy formats. New username edits follow ProfileInput validation.
         displayName: { type: string }
         realName: { type: ["string", "null"] }
         bio: { type: ["string", "null"] }
@@ -603,7 +602,7 @@ components:
           items: { $ref: "#/components/schemas/Playlist" }
     ExploreData:
       type: object
-      required: [featured, lists]
+      required: [featured, lists, editorialVideos, isPersonalized, trendingBasis, listsBasis]
       properties:
         featured:
           type: array
@@ -611,4 +610,17 @@ components:
         lists:
           type: array
           items: { $ref: "#/components/schemas/Playlist" }
+        editorialVideos:
+          type: array
+          description: Verified YouTube tutorials used only when Cortado has not accumulated enough public activity.
+          items: { $ref: "#/components/schemas/Video" }
+        isPersonalized:
+          type: boolean
+          description: Whether profile interests or saved tutorials influenced the ordering.
+        trendingBasis:
+          type: string
+          description: Honest explanation of the Cortado-only trending signal.
+        listsBasis:
+          type: string
+          description: Honest explanation of curated-list personalization.
 

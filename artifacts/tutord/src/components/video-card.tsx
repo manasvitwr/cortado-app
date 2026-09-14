@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { PlayCircle, Clock, Star, MoreVertical } from "lucide-react";
+import { PlayCircle, Clock, Star, MoreVertical, BookmarkPlus, Check } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { formatDuration } from "@/lib/utils";
 import type { Entry, Video } from "@workspace/api-client-react";
@@ -9,9 +9,20 @@ interface VideoCardProps {
   video?: Video;
   showStatus?: boolean;
   compact?: boolean;
+  onSave?: () => void;
+  isSaving?: boolean;
+  isSaved?: boolean;
 }
 
-export function VideoCard({ entry, video, showStatus = true, compact = false }: VideoCardProps) {
+export function VideoCard({
+  entry,
+  video,
+  showStatus = true,
+  compact = false,
+  onSave,
+  isSaving = false,
+  isSaved = false,
+}: VideoCardProps) {
   const v = entry ? entry.video : video;
   if (!v) return null;
 
@@ -72,17 +83,36 @@ export function VideoCard({ entry, video, showStatus = true, compact = false }: 
             )}
           </div>
           
-          <div className="flex items-center text-xs text-muted-foreground gap-2 font-medium">
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-medium">
             <span className="truncate">{v.channelName}</span>
-            {entry?.rating && (
-              <>
-                <span className="w-1 h-1 rounded-full bg-border" />
-                <span className="flex items-center gap-1 text-primary font-semibold">
-                  <Star className="w-3 h-3 fill-current" />
-                  {entry.rating}
-                </span>
-              </>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {entry?.rating && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-border" />
+                  <span className="flex items-center gap-1 text-primary font-semibold">
+                    <Star className="w-3 h-3 fill-current" />
+                    {entry.rating}
+                  </span>
+                </>
+              )}
+              {onSave && (
+                <button
+                  type="button"
+                  aria-label={isSaved ? "Saved to your library" : `Save ${v.title}`}
+                  aria-busy={isSaving}
+                  disabled={isSaving || isSaved}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (!isSaved && !isSaving) onSave();
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-secondary/80 px-2 py-1 text-[11px] font-bold text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:cursor-default disabled:opacity-70"
+                >
+                  {isSaved ? <Check className="w-3 h-3" /> : <BookmarkPlus className="w-3 h-3" />}
+                  {isSaved ? "Saved" : isSaving ? "Saving…" : "Save"}
+                </button>
+              )}
+            </div>
           </div>
 
           {entry && showStatus && (
