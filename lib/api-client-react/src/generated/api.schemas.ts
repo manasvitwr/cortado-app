@@ -211,7 +211,7 @@ export interface ProfileStats {
 
 export interface Profile {
   id: string;
-  /** Stored username, including legacy formats. New username edits follow ProfileInput validation. */
+  /** Stored username, including legacy formats. New username edits follow ProfileUpdate validation. */
   username: string;
   displayName: string;
   /** @nullable */

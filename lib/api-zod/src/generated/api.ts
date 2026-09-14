@@ -608,7 +608,7 @@ export const getProfileResponseLibraryEntriesItemRatingMax = 5;
 
 export const GetProfileResponse = zod.object({
   "id": zod.string(),
-  "username": zod.string().describe('Stored username, including legacy formats. New username edits follow ProfileInput validation.'),
+  "username": zod.string().describe('Stored username, including legacy formats. New username edits follow ProfileUpdate validation.'),
   "displayName": zod.string(),
   "realName": zod.string().nullable(),
   "bio": zod.string().nullable(),
@@ -760,7 +760,7 @@ export const updateProfileResponseLibraryEntriesItemRatingMax = 5;
 
 export const UpdateProfileResponse = zod.object({
   "id": zod.string(),
-  "username": zod.string().describe('Stored username, including legacy formats. New username edits follow ProfileInput validation.'),
+  "username": zod.string().describe('Stored username, including legacy formats. New username edits follow ProfileUpdate validation.'),
   "displayName": zod.string(),
   "realName": zod.string().nullable(),
   "bio": zod.string().nullable(),

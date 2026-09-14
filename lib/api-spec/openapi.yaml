@@ -505,7 +505,7 @@ components:
         id: { type: string }
         username:
           type: string
-          description: Stored username, including legacy formats. New username edits follow ProfileInput validation.
+          description: Stored username, including legacy formats. New username edits follow ProfileUpdate validation.
         displayName: { type: string }
         realName: { type: ["string", "null"] }
         bio: { type: ["string", "null"] }

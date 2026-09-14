@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
-import { useGetProfile, useUpdateProfile, getGetProfileQueryKey } from "@workspace/api-client-react";
+import {
+  getGetProfileQueryKey,
+  type ProfileUpdate,
+  useGetProfile,
+  useUpdateProfile,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { Button, Input, Textarea } from "@/components/ui";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Check } from "lucide-react";
@@ -14,7 +19,13 @@ const PRESET_INTERESTS = [
 ];
 
 export default function Onboarding() {
-  const { data: profile, isLoading } = useGetProfile();
+  const {
+    data: profile,
+    isLoading,
+    error: profileError,
+    refetch: refetchProfile,
+    isFetching: isProfileFetching,
+  } = useGetProfile();
   const updateProfile = useUpdateProfile();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -39,12 +50,34 @@ export default function Onboarding() {
     }
   }, [profile, setLocation]);
 
-  if (isLoading || !profile) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (profileError || !profile) {
+    return (
+      <div className="min-h-[100dvh] flex flex-col gap-4 items-center justify-center bg-background px-6 text-center">
+        <h1 className="text-xl font-semibold">We couldn’t load your profile</h1>
+        <p className="text-muted-foreground">
+          Please retry. Your saved library hasn’t been changed.
+        </p>
+        <Button
+          type="button"
+          disabled={isProfileFetching}
+          onClick={() => void refetchProfile()}
+        >
+          {isProfileFetching ? "Trying again…" : "Try again"}
+        </Button>
+      </div>
+    );
+  }
+
+  if (profile.onboardingCompleted) {
+    return <Redirect to="/home" />;
   }
 
   const toggleInterest = (interest: string) => {
@@ -59,22 +92,28 @@ export default function Onboarding() {
     e.preventDefault();
     setError("");
 
-    if (username.length < 3 || username.length > 24) {
-      setError("Username must be between 3 and 24 characters.");
+    const usernameChanged = username !== profile.username;
+    if (
+      usernameChanged &&
+      !/^[a-z][a-z0-9_]{2,23}$/.test(username)
+    ) {
+      setError(
+        "Username must be 3–24 characters, start with a lowercase letter, and use only lowercase letters, numbers, and underscores.",
+      );
       return;
     }
 
     try {
-      const savedProfile = await updateProfile.mutateAsync({
-        data: {
-          username,
-          realName: realName.trim() || null,
-          ...(realName.trim() ? { displayName: realName.trim() } : {}),
-          bio: bio || null,
-          interests,
-          onboardingCompleted: true
-        }
-      });
+      const data: ProfileUpdate = {
+        realName: realName.trim() || null,
+        ...(realName.trim() ? { displayName: realName.trim() } : {}),
+        bio: bio || null,
+        interests,
+        onboardingCompleted: true,
+      };
+      if (usernameChanged) data.username = username;
+
+      const savedProfile = await updateProfile.mutateAsync({ data });
       queryClient.setQueryData(getGetProfileQueryKey(), savedProfile);
       toast({ title: "Welcome to Cortado!" });
       setLocation("/home");
@@ -88,6 +127,7 @@ export default function Onboarding() {
   };
 
   const handleSkip = async () => {
+    setError("");
     try {
       const savedProfile = await updateProfile.mutateAsync({
         data: { onboardingCompleted: true }
@@ -95,8 +135,8 @@ export default function Onboarding() {
       queryClient.setQueryData(getGetProfileQueryKey(), savedProfile);
       toast({ title: "Welcome to Cortado!" });
       setLocation("/home");
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to skip onboarding.", variant: "destructive" });
+    } catch {
+      setError("Failed to save profile. Please try again.");
     }
   };
 

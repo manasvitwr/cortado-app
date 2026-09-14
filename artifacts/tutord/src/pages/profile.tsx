@@ -1,5 +1,14 @@
 import { Layout } from "@/components/layout";
-import { useGetProfile, useUpdateProfile, useRequestUploadUrl, getGetProfileQueryKey, getGetStorageObjectUrl, type Entry, UploadUrlRequestContentType } from "@workspace/api-client-react";
+import {
+  getGetProfileQueryKey,
+  getGetStorageObjectUrl,
+  type Entry,
+  type ProfileUpdate,
+  UploadUrlRequestContentType,
+  useGetProfile,
+  useRequestUploadUrl,
+  useUpdateProfile,
+} from "@workspace/api-client-react";
 import { VideoCard } from "@/components/video-card";
 import { ListCard } from "@/components/list-card";
 import { useClerk } from "@clerk/react";
@@ -152,20 +161,25 @@ export default function Profile() {
     e.preventDefault();
     setEditError("");
 
-    if (editUsername.length < 3 || editUsername.length > 24) {
-      setEditError("Username must be between 3 and 24 characters.");
+    const usernameChanged = editUsername !== data?.username;
+    if (usernameChanged && !/^[a-z][a-z0-9_]{2,23}$/.test(editUsername)) {
+      setEditError(
+        "Username must be 3–24 characters, start with a lowercase letter, and use only lowercase letters, numbers, and underscores.",
+      );
       return;
     }
 
     try {
+      const profileUpdate: ProfileUpdate = {
+        realName: editRealName.trim() || null,
+        displayName: editRealName.trim() || "Anonymous",
+        bio: editBio || null,
+        interests: editInterests,
+      };
+      if (usernameChanged) profileUpdate.username = editUsername;
+
       await updateProfile.mutateAsync({
-        data: {
-          username: editUsername,
-          realName: editRealName.trim() || null,
-          displayName: editRealName.trim() || "Anonymous",
-          bio: editBio || null,
-          interests: editInterests,
-        }
+        data: profileUpdate,
       });
       queryClient.invalidateQueries({ queryKey: getGetProfileQueryKey() });
       setIsEditProfileOpen(false);

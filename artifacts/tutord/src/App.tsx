@@ -135,19 +135,21 @@ function ProtectedRoute({ component: Component }: { component: any }) {
     }
   });
 
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
 
-  useEffect(() => {
-    if (isLoaded && isSignedIn && profile && !profile.onboardingCompleted && location !== '/onboarding') {
-      setLocation('/onboarding');
-    }
-  }, [isLoaded, isSignedIn, profile, location, setLocation]);
-
-  if (!isLoaded || (isSignedIn && isProfileLoading)) {
+  if (!isLoaded) {
     return <div className="min-h-[100dvh] flex items-center justify-center bg-background text-muted-foreground">Loading...</div>;
   }
 
-  if (isSignedIn && (error || !profile)) {
+  if (!isSignedIn) {
+    return <Redirect to="/" />;
+  }
+
+  if (isProfileLoading) {
+    return <div className="min-h-[100dvh] flex items-center justify-center bg-background text-muted-foreground">Loading...</div>;
+  }
+
+  if (error || !profile) {
     return (
       <div className="min-h-[100dvh] flex flex-col gap-4 items-center justify-center bg-background px-6 text-center">
         <h1 className="text-xl font-semibold">We couldn’t load your profile</h1>
@@ -159,16 +161,15 @@ function ProtectedRoute({ component: Component }: { component: any }) {
     );
   }
 
-  return (
-    <>
-      <Show when="signed-in">
-        {(profile?.onboardingCompleted || location === '/onboarding') ? <Component /> : <div className="min-h-[100dvh] flex items-center justify-center bg-background text-muted-foreground">Redirecting...</div>}
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/" />
-      </Show>
-    </>
-  );
+  if (!profile.onboardingCompleted && location !== "/onboarding") {
+    return <Redirect to="/onboarding" />;
+  }
+
+  if (profile.onboardingCompleted && location === "/onboarding") {
+    return <Redirect to="/home" />;
+  }
+
+  return <Component />;
 }
 
 function ClerkQueryClientCacheInvalidator() {
