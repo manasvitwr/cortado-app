@@ -4,11 +4,14 @@ import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
 import { rm } from "node:fs/promises";
+import { config as dotenvConfig } from 'dotenv';
+
+const artifactDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(artifactDir, '..', '..', '..');
+dotenvConfig({ path: path.resolve(rootDir, '.env') });
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
-
-const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 
 async function buildAll() {
   const distDir = path.resolve(artifactDir, "dist");
@@ -63,8 +66,6 @@ async function buildAll() {
       "@aws-sdk/*",
       "@azure/*",
       "@opentelemetry/*",
-      "@google-cloud/*",
-      "@google/*",
       "googleapis",
       "firebase-admin",
       "@parcel/watcher",
